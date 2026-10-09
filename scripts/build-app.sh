@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 case "$sessionbar_arch" in arm64|x86_64|universal) ;; *) echo 'Architecture must be arm64, x86_64, or universal' >&2; exit 2 ;; esac
-[[ -f AGENTS.md && -f README.md ]] || { echo 'AGENTS.md and README.md are required' >&2; exit 1; }
+[[ -f AGENTS.md && -f README.md && -f LICENSE ]] || { echo 'AGENTS.md, README.md, and LICENSE are required' >&2; exit 1; }
 sessionbar_app="$sessionbar_root/build/sessionbar.app"
 # Rebuild a clean bundle; no local preferences or existing user files are copied.
 rm -rf "$sessionbar_app"
@@ -38,6 +38,7 @@ xcrun strip -S "$sessionbar_app/Contents/MacOS/sessionbar"
 cp Packaging/Info.plist "$sessionbar_app/Contents/Info.plist"
 iconutil -c icns Packaging/AppIcon.iconset -o "$sessionbar_app/Contents/Resources/AppIcon.icns"
 ditto Packaging/Resources "$sessionbar_app/Contents/Resources"
+cp LICENSE "$sessionbar_app/Contents/Resources/LICENSE"
 codesign --force --sign - "$sessionbar_app"
 codesign --verify --deep --strict "$sessionbar_app"
 if [[ "$sessionbar_install_requested" == true ]]; then

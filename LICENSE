@@ -1,0 +1,164 @@
+sessionbar Source-Available License 1.0
+
+Copyright (c) 2026 sy-shin and contributors.
+
+1. Scope
+
+This license applies to the sessionbar source code, application binaries,
+documentation, and assets supplied with this license (the "Software").
+Separately identified third-party materials remain under their own licenses.
+Each copyright holder grants rights only in the material they own.
+
+2. Permitted use
+
+Subject to these conditions, you may download, run, copy, inspect, and modify
+the Software without a license fee, for personal use and for internal use by
+businesses or other organizations, including in paid professional work.
+You may distribute original or modified copies free of charge, provided that
+the distribution does not fall within section 3.
+
+Using the Software as a tool to perform paid work, or to create and sell your
+own work products that do not contain the Software, is permitted. Such use
+does not place those work products under this license.
+
+3. Uses requiring separate permission
+
+Without separate prior written permission from the relevant copyright holders,
+you may not:
+
+(a) sell, rent, license for a fee, or charge for access to or distribution of
+    the Software or a modified version;
+(b) incorporate, embed, or bundle the Software or a modified version into a
+    product or service offered to third parties for payment or other
+    consideration, even if the Software is described as a free component; or
+(c) offer the Software's functionality to third parties as a paid hosted,
+    subscription, or managed service.
+
+Renaming, repackaging, or modifying the Software does not remove these
+restrictions. Ordinary internal business use and the work products described
+in section 2 are not restricted by this section.
+
+4. Redistribution and attribution
+
+Every distributed copy must retain the applicable copyright notices, include
+this entire license, and identify the original project:
+https://github.com/sy-shin/sessionbar
+
+Modified distributions must clearly identify that they have been modified.
+You may not remove these conditions or grant recipients rights in the
+Software that this license does not grant. You may apply additional terms to
+your own original contributions only if they do not contradict this license
+or restrict the rights granted here in the original Software.
+
+5. Ownership and additional permission
+
+Copyright remains with the respective copyright holders. Rights not expressly
+granted are reserved. This license grants no right to claim official
+endorsement or to use project names or logos as your own branding.
+
+To request permission for the uses in section 3, contact the maintainer through
+https://github.com/sy-shin/sessionbar/issues
+An inquiry is not permission; written approval must identify the permitted
+use and the material covered. Approval covers only rights controlled by the
+approving copyright holders, not independently owned third-party material.
+
+6. Termination
+
+The permissions granted by this license terminate if you violate its
+conditions. Reinstatement requires written permission from the relevant
+copyright holders. Termination does not limit rights you have independently
+under applicable law or a separate agreement.
+
+7. No warranty; limitation of liability
+
+To the extent permitted by applicable law, the Software is provided "as is",
+without warranty of any kind, including merchantability, fitness for a
+particular purpose, and noninfringement. To the extent permitted by applicable
+law, the copyright holders and contributors are not liable for claims,
+damages, or other liability arising from the Software or its use.
+
+8. Language
+
+The English text above is authoritative. The Korean translation below is
+provided for convenience; if the texts differ, the English text controls.
+
+---
+
+sessionbar 소스 공개 라이선스 1.0 — 한국어 번역
+
+저작권 (c) 2026 sy-shin 및 기여자.
+
+1. 적용 범위
+
+이 라이선스는 함께 제공된 sessionbar 소스 코드, 앱 실행 파일, 문서 및
+에셋(이하 "소프트웨어")에 적용됩니다. 별도로 표시된 제삼자 자료에는
+각각의 라이선스가 적용됩니다. 각 저작권자는 자신이 소유한 자료에 관한
+권리만 허용합니다.
+
+2. 허용되는 사용
+
+이 조건을 준수하면 개인 사용, 기업 및 단체의 내부 사용, 유료 전문 업무를
+위해 소프트웨어를 라이선스 비용 없이 다운로드·실행·복사·열람·수정할 수
+있습니다. 제3항에 해당하지 않는 범위에서 원본이나 수정본을 무료로
+재배포할 수 있습니다.
+
+소프트웨어를 도구로 사용해 유료 업무를 수행하거나, 소프트웨어를 포함하지
+않는 자신의 결과물을 만들어 판매하는 것은 허용됩니다. 그 결과물에는
+이 라이선스가 적용되지 않습니다.
+
+3. 별도 허락이 필요한 사용
+
+관련 저작권자의 사전 서면 허락 없이 다음 행위를 할 수 없습니다.
+
+(a) 소프트웨어나 수정본을 판매·대여하거나, 유료 이용권을 부여하거나,
+    접근 또는 배포에 요금을 부과하는 행위
+(b) 소프트웨어나 수정본을 대가를 받고 제삼자에게 제공하는 제품이나
+    서비스에 통합·내장·묶음 제공하는 행위. 소프트웨어를 무료 구성 요소로
+    표시하더라도 동일하게 적용됩니다.
+(c) 소프트웨어의 기능을 유료 호스팅·구독·관리 서비스로 제삼자에게
+    제공하는 행위
+
+이름 변경·재포장·수정으로 이 제한이 없어지지 않습니다. 일반적인 내부
+업무 사용과 제2항의 업무 결과물에는 이 제한이 적용되지 않습니다.
+
+4. 재배포와 출처 표시
+
+배포하는 모든 사본에는 해당 저작권 고지와 이 라이선스 전문을 유지하고
+원본 프로젝트 주소를 표시해야 합니다.
+https://github.com/sy-shin/sessionbar
+
+수정본을 배포할 때는 수정된 버전임을 명확히 표시해야 합니다. 이 조건을
+제거하거나 이 라이선스가 허용하지 않는 소프트웨어 권리를 수령자에게
+부여할 수 없습니다. 자신의 독자적인 기여분에 추가 조건을 적용할 수는
+있으나 이 라이선스와 충돌하거나 원본 소프트웨어에 허용된 권리를
+제한해서는 안 됩니다.
+
+5. 권리의 소유와 추가 허락
+
+저작권은 각 저작권자에게 남습니다. 명시적으로 허용하지 않은 권리는
+유보됩니다. 공식적인 보증이나 지지를 받았다고 주장하거나 프로젝트 이름
+또는 로고를 자신의 브랜드로 사용할 권리는 부여하지 않습니다.
+
+제3항의 사용 허락은 다음 주소에서 관리자에게 요청할 수 있습니다.
+https://github.com/sy-shin/sessionbar/issues
+문의 자체는 허락이 아닙니다. 서면 승인은 허용하는 사용과 대상 자료를
+명시해야 합니다. 승인은 승인한 저작권자가 관리하는 권리에만 적용되며
+별도의 제삼자 자료에는 적용되지 않습니다.
+
+6. 종료
+
+이 조건을 위반하면 이 라이선스에 따른 허락이 종료됩니다. 허락의 복원에는
+관련 저작권자의 서면 승인이 필요합니다. 종료는 관계 법령이나 별도 계약에
+따라 독립적으로 보유한 권리를 제한하지 않습니다.
+
+7. 보증 및 책임의 제한
+
+관계 법령이 허용하는 범위에서 소프트웨어는 "있는 그대로" 제공되며,
+상품성·특정 목적 적합성·권리 비침해를 포함한 어떠한 보증도 제공하지
+않습니다. 관계 법령이 허용하는 범위에서 저작권자와 기여자는 소프트웨어
+또는 그 사용으로 발생하는 청구·손해 및 그 밖의 책임을 부담하지 않습니다.
+
+8. 언어
+
+영어 본문이 기준입니다. 한국어 번역은 편의를 위해 제공하며 두 문구가
+다를 경우 영어 본문이 우선합니다.

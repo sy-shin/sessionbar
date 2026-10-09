@@ -7,6 +7,8 @@ python3 - "$sessionbar_out" <<'PY'
 from pathlib import Path
 import hashlib,sys,zipfile,plistlib
 root=Path(sys.argv[1])
+license_text=Path('LICENSE').read_bytes()
+assert (root/'LICENSE').read_bytes()==license_text, 'Release license missing or mismatched'
 for line in (root/'SHA256SUMS.txt').read_text().splitlines():
     expected,name=line.split('  ',1)
     assert Path(name).name == name
@@ -18,6 +20,7 @@ for path in root.glob('*.zip'):
             assert not any(part in name.split('/') for part in ['.git','.codex','.DS_Store','auth.json','.build']), name
             assert not name.endswith(('.jsonl','.log')), name
         info=plistlib.loads(z.read('sessionbar.app/Contents/Info.plist'))
+        assert z.read('sessionbar.app/Contents/Resources/LICENSE')==license_text, 'Bundled license missing or mismatched'
         assert info['CFBundleIdentifier']=='io.sessionbar.app'
         assert info['LSMinimumSystemVersion']=='14.0'
         binary=z.read('sessionbar.app/Contents/MacOS/sessionbar')

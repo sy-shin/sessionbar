@@ -16,8 +16,9 @@
 
 <p align="center">
   <a href="#한국어">한국어</a> · <a href="#english">English</a> ·
-  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2"><strong>앱 다운로드 / Download app</strong></a> ·
-  <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a>
+  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3"><strong>앱 다운로드 / Download app</strong></a> ·
+  <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a> ·
+  <a href="docs/003_이용조건.md">이용 조건 / License</a>
 </p>
 
 ---
@@ -108,7 +109,7 @@
 
 **macOS 14 이상 · Apple Silicon 및 Intel Mac**에서 사용할 수 있습니다.
 
-[**macOS 앱 다운로드 — 0.2.0-beta.2**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2)
+[**macOS 앱 다운로드 — 0.2.0-beta.3**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3)
 
 DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 실행하세요. ZIP으로도 받을 수 있습니다. 컴파일러 설치는 필요하지 않습니다.
 
@@ -131,6 +132,14 @@ DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 �
 | 알림 | 확인 필요 추정 알림 기본 켜짐 · 완료·오류 알림 개별 선택 |
 | 알림 조절 | 알림음 · 조용한 시간대 · 1시간 일시 중지 · 같은 세션의 반복 간격 |
 | 앱 실행 | Mac 시작 시 자동 실행 선택 가능 |
+
+### 이용 조건
+
+개인·회사 내부 사용, 코드 열람·수정, 무료 재배포를 허용합니다. 재배포 시 저작권·라이선스·원본 주소를 유지하고 수정 여부를 표시하세요.
+
+**앱·수정본 유료 판매, 유료 제품에 포함, 앱 기능의 유료 서비스 제공에는 사전 서면 허락이 필요합니다.** 앱을 도구로 사용하는 유료 업무와 앱을 포함하지 않는 결과물의 판매는 허용됩니다.
+
+[이용 조건 요약](docs/003_이용조건.md) · [라이선스 전문](LICENSE)
 
 <details>
 <summary>빌드 옵션과 테스트</summary>
@@ -247,7 +256,7 @@ Use the clock button to open activity history. Select a date to see **completed 
 
 Requires **macOS 14 or later · Apple Silicon or Intel Mac**.
 
-[**Download the macOS app — 0.2.0-beta.2**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2)
+[**Download the macOS app — 0.2.0-beta.3**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3)
 
 Open the DMG, drag `sessionbar.app` to **Applications**, and open it. A ZIP is also available. No compiler installation is needed.
 
@@ -270,6 +279,14 @@ See the [installation guide](docs/000_설치및업데이트.md) for first launch
 | Notifications | Attention estimates enabled by default · Optional completion and error notifications |
 | Notification controls | Sound · Quiet hours · Pause for 1 hour · Repeat interval per session |
 | Launch | Optional automatic startup on your Mac |
+
+### License
+
+Personal and internal business use, code inspection and modification, and free redistribution are permitted. Keep copyright notices, the license, and the project URL with redistributed copies, and identify modifications.
+
+**Selling the app or modifications, including them in paid products, or offering their functionality as paid services requires prior written permission.** Using the app as a tool for paid work and selling work products that do not contain it are allowed.
+
+[Usage summary](docs/003_이용조건.md) · [Full license](LICENSE)
 
 <details>
 <summary>Build options and tests</summary>
