@@ -30,7 +30,7 @@ struct SessionTerminationDialog: ViewModifier {
                     Task { actionError = await store.terminateSession(session) }
                 }
             } message: {
-                Text((session?.projectName ?? "") + "\n" + L10n.text("진행 중인 작업이 중단됩니다. 대화 기록은 유지됩니다."))
+                Text((session?.projectName ?? "") + "\n" + L10n.text("Codex가 종료됩니다. 대화 기록은 유지됩니다."))
             }
             .alert(L10n.text("Codex 종료 실패"), isPresented: Binding(
                 get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
