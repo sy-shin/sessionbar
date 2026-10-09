@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="#한국어">한국어</a> · <a href="#english">English</a> ·
-  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1"><strong>앱 다운로드 / Download app</strong></a> ·
+  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2"><strong>앱 다운로드 / Download app</strong></a> ·
   <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a>
 </p>
 
@@ -36,7 +36,7 @@
   <img src="Assets/demo/000_사용흐름_한국어.gif" alt="sessionbar 사용 흐름: 세션 확인, 결과 읽기와 확인 처리" width="900">
 </p>
 
-[한국어 영상 보기 (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.1/000_사용흐름_한국어.mp4) · [버전별 변경 내용](docs/001_변경기록.md)
+[한국어 영상 보기 (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_사용흐름_한국어.mp4) · [버전별 변경 내용](docs/001_변경기록.md)
 
 <sub>앱 화면에 예시 프로젝트와 대화를 사용했습니다.</sub>
 
@@ -108,7 +108,7 @@
 
 **macOS 14 이상 · Apple Silicon 및 Intel Mac**에서 사용할 수 있습니다.
 
-[**macOS 앱 다운로드 — 0.2.0-beta.1**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1)
+[**macOS 앱 다운로드 — 0.2.0-beta.2**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2)
 
 DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 실행하세요. ZIP으로도 받을 수 있습니다. 컴파일러 설치는 필요하지 않습니다.
 
@@ -175,7 +175,7 @@ Session list → unreviewed requests and results → latest reply → review act
   <img src="Assets/demo/000_사용흐름_영문.gif" alt="sessionbar walkthrough: checking sessions, reading replies, and reviewing results" width="900">
 </p>
 
-[Watch the English video (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.1/000_사용흐름_영문.mp4) · [Changelog](docs/001_변경기록.md)
+[Watch the English video (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_사용흐름_영문.mp4) · [Changelog](docs/001_변경기록.md)
 
 <sub>The app screens use example projects and conversations.</sub>
 
@@ -247,7 +247,7 @@ Use the clock button to open activity history. Select a date to see **completed 
 
 Requires **macOS 14 or later · Apple Silicon or Intel Mac**.
 
-[**Download the macOS app — 0.2.0-beta.1**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1)
+[**Download the macOS app — 0.2.0-beta.2**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.2)
 
 Open the DMG, drag `sessionbar.app` to **Applications**, and open it. A ZIP is also available. No compiler installation is needed.
 

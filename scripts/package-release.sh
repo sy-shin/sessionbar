@@ -2,7 +2,7 @@
 set -euo pipefail
 sessionbar_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$sessionbar_root"
-sessionbar_tag="${1:-v0.2.0-beta.1}"
+sessionbar_tag="${1:-v0.2.0-beta.2}"
 [[ "$sessionbar_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ ]] || { echo 'Invalid release tag' >&2; exit 2; }
 if [[ "${2:-}" != --skip-build ]]; then ./scripts/build-app.sh --arch universal; fi
 sessionbar_app="$sessionbar_root/build/sessionbar.app"

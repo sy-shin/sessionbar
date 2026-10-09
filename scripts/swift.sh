@@ -55,4 +55,5 @@ if [[ "${1:-}" == "test" && -d "$sessionbar_developer/Library/Developer/Framewor
     sessionbar_flags+=(--disable-xctest -Xswiftc -F -Xswiftc "$sessionbar_developer/Library/Developer/Frameworks")
 fi
 cd "$sessionbar_root"
-exec "$sessionbar_swift" "$@" "${sessionbar_flags[@]}"
+# Bash 3 treats an empty array as unset with nounset enabled.
+exec "$sessionbar_swift" "$@" ${sessionbar_flags[@]+"${sessionbar_flags[@]}"}
