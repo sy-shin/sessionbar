@@ -77,6 +77,7 @@ struct SessionDetailView: View {
                         Button(L10n.text("프로젝트 경로")) { copy(session.projectPath) }
                     }
                     Spacer()
+                    if session.runtime != nil { SessionTerminationButton(store: store, session: session) }
                     Button { store.refresh(); Task { await reload() } } label: { Image(systemName: "arrow.clockwise") }
                         .help(L10n.text("새로고침")).accessibilityLabel(L10n.text("상세 새로고침"))
                 }

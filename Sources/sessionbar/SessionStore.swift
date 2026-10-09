@@ -14,12 +14,14 @@ final class SessionStore: ObservableObject {
     @Published private(set) var processCount = 0
     @Published private(set) var activeSessionCount = 0
     @Published private(set) var folderError: String?
+    @Published private(set) var terminatingSessionIDs = Set<String>()
     private let folderAccess = SessionFolderAccess()
     private var suggestedSessionFolder: URL?
     @Published private(set) var invalidFileCount = 0
     let settings: AppSettings
     private let repository = SessionRepository()
     private let processObserver = ProcessObserver()
+    private let processController = SessionProcessController()
     private let monitor = FileChangeMonitor()
     private let notifications: NotificationService
     private var placeholderIDs: [URL: String] = [:]
@@ -108,6 +110,15 @@ final class SessionStore: ObservableObject {
     }
 
     func record(id: String) -> SessionRecord? { allRecords[id] }
+
+    func terminateSession(_ session: SessionRecord) async -> String? {
+        guard let runtime = session.runtime, let url = sessionURLs[session.id] else {
+            return "종료할 세션을 확인할 수 없습니다"
+        }
+        guard terminatingSessionIDs.insert(session.id).inserted else { return "세션 종료 중입니다" }
+        defer { terminatingSessionIDs.remove(session.id); refresh() }
+        return await processController.terminate(runtime: runtime, file: url).error
+    }
 
     func detail(id: String) async -> SessionDetail? {
         guard let url = sessionURLs[id] else { return nil }

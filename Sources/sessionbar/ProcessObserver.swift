@@ -13,6 +13,7 @@ actor ProcessObserver {
         let parent: Int32
         let tty: String?
         let command: String
+        let startTime: UInt64?
     }
 
     func scan() -> ProcessSnapshot {
@@ -23,7 +24,9 @@ actor ProcessObserver {
             let fields = line.split(maxSplits: 3, omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
             guard fields.count == 4, let id = Int32(fields[0]), let parent = Int32(fields[1]) else { continue }
             let tty = fields[2] == "??" ? nil : "/dev/\(fields[2])"
-            processes[id] = Entry(id: id, parent: parent, tty: tty, command: String(fields[3]))
+            let command = String(fields[3])
+            let startTime = URL(fileURLWithPath: command).lastPathComponent == "codex" ? SessionProcessController.startTime(of: id) : nil
+            processes[id] = Entry(id: id, parent: parent, tty: tty, command: command, startTime: startTime)
         }
         let codex = processes.values.filter { URL(fileURLWithPath: $0.command).lastPathComponent == "codex" }
         guard !codex.isEmpty else { return ProcessSnapshot(byFile: [:], codexCount: 0, available: true) }
@@ -89,7 +92,7 @@ actor ProcessObserver {
             }
             let runtime = SessionRuntime(processID: pid, tty: tty, terminalName: pane == nil ? terminalName : "tmux",
                                          terminalBundleID: bundleID, tmuxPane: pane?.pane,
-                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid])
+                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime)
             if result[url]?.tty == nil || runtime.tty != nil { result[url] = runtime }
         }
         return ProcessSnapshot(byFile: result, codexCount: codex.count, available: true)

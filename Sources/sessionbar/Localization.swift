@@ -36,6 +36,17 @@ enum L10n {
         return text(activity.label)
     }
     static let english: [String: String] = [
+        "Codex 종료…": "Quit Codex…",
+        "Codex 종료": "Quit Codex",
+        "Codex 세션을 종료할까요?": "Quit this Codex session?",
+        "진행 중인 작업이 중단됩니다. 대화 기록은 유지됩니다.": "Work in progress will stop. Conversation history will be kept.",
+        "Codex 종료 실패": "Could not quit Codex",
+        "종료할 세션을 확인할 수 없습니다": "Could not identify the session to quit",
+        "세션이 변경되었습니다. 새로고침해 주세요": "The session has changed. Please refresh",
+        "여러 세션이 연결되어 종료할 수 없습니다": "Cannot quit a process connected to multiple sessions",
+        "세션을 종료할 수 없습니다": "Could not quit the session",
+        "세션이 아직 실행 중입니다": "The session is still running",
+        "세션 종료 중입니다": "The session is being closed",
         "일반": "General",
         "알림": "Notifications",
         "폴더": "Folders",

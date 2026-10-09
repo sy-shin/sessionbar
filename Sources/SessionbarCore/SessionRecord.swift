@@ -32,6 +32,7 @@ public enum SessionState: String, CaseIterable, Sendable {
 
 public struct SessionRuntime: Equatable, Sendable {
     public let processID: Int32
+    public let processStartTime: UInt64?
     public let tty: String?
     public let terminalName: String?
     public let terminalBundleID: String?
@@ -43,8 +44,10 @@ public struct SessionRuntime: Equatable, Sendable {
 
     public init(processID: Int32, tty: String? = nil, terminalName: String? = nil,
                 terminalBundleID: String? = nil, tmuxPane: String? = nil,
-                tmuxSession: String? = nil, tmuxWindow: String? = nil, tmuxClientTTY: String? = nil, workingDirectory: String? = nil) {
+                tmuxSession: String? = nil, tmuxWindow: String? = nil, tmuxClientTTY: String? = nil, workingDirectory: String? = nil,
+                processStartTime: UInt64? = nil) {
         self.processID = processID
+        self.processStartTime = processStartTime
         self.tty = tty
         self.terminalName = terminalName
         self.terminalBundleID = terminalBundleID

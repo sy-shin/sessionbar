@@ -49,6 +49,9 @@ struct SessionListView: View {
     @Environment(\.openSettings) private var openSettings
     @State private var filter = SessionListFilter.openSessions
     @State private var search = ""
+    @State private var terminationTarget: SessionRecord?
+    @State private var confirmingTermination = false
+    @State private var terminationError: String?
 
     private var visibleSessions: [SessionRecord] {
         store.sessions.filter { record in
@@ -131,6 +134,14 @@ struct SessionListView: View {
                                     .sessionCard()
                                     .contentShape(Rectangle())
                             }.buttonStyle(.plain)
+                                .contextMenu {
+                                    if session.runtime != nil {
+                                        Button(L10n.text("Codex 종료…"), role: .destructive) {
+                                            terminationTarget = session
+                                            confirmingTermination = true
+                                        }.disabled(session.runtime?.processStartTime == nil || store.terminatingSessionIDs.contains(session.id))
+                                    }
+                                }
                         }
                     }.padding(16)
                 }
@@ -159,6 +170,9 @@ struct SessionListView: View {
             .font(.caption).buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 12)
         }
         .sessionTheme()
+        .modifier(SessionTerminationDialog(store: store,
+            session: terminationTarget,
+            confirming: $confirmingTermination, actionError: $terminationError))
     }
 }
 

@@ -62,6 +62,8 @@
 
 세션을 선택하면 **최신 Codex 응답과 최근 활동**이 열립니다. 창 크기를 조절하면서 결과를 읽고, 프로젝트 폴더를 열거나 재개 명령을 복사할 수 있습니다.
 
+열려 있는 세션은 상세 화면의 **Codex 종료…** 또는 목록의 우클릭 메뉴에서 종료할 수 있습니다. 종료할 세션을 확인하면 해당 Codex가 닫히고, 대화 기록은 남습니다. 다시 작업하려면 재개 명령을 사용하세요.
+
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_한국어.png" alt="sessionbar 세션 상세: 최신 응답, 작업 활동과 프로젝트 열기" width="850">
 </p>
@@ -168,6 +170,8 @@ The menu icon changes when a session may need attention. Estimated states are la
 ### 2. Read results and continue your work
 
 Select a session to open its **latest Codex reply and recent activity**. Resize the window to read the result, open the project folder, or copy its resume command.
+
+Quit an open session with **Quit Codex…** in its detail window or the list's right-click menu. Confirm the session to close Codex and keep its conversation history. Use the resume command to continue later.
 
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_영문.png" alt="sessionbar session details with the latest reply, recent activity, and project actions" width="850">
