@@ -22,27 +22,32 @@ struct SessionHistoryView: View {
             if loading { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
             else if items.isEmpty { ContentUnavailableView("이 날짜의 완료 기록이 없습니다", systemImage: "calendar") }
             else {
-                List(items) { item in
-                    HStack(alignment: .top, spacing: 14) {
-                        Text(item.date, style: .time).font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 76)
-                        Image(systemName: item.state.symbol).foregroundStyle(item.state.color)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(item.projectName.isEmpty ? "프로젝트 없음" : item.projectName).font(.headline)
-                            Text(item.title).font(.subheadline).lineLimit(2)
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(items) { item in
+                            HStack(alignment: .top, spacing: 14) {
+                                Text(item.date, style: .time).font(.caption.monospacedDigit()).foregroundStyle(SessionTheme.muted).frame(width: 76)
+                                Image(systemName: item.state.symbol).foregroundStyle(item.state.color)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(item.projectName.isEmpty ? "프로젝트 없음" : item.projectName).font(.headline)
+                                    Text(item.title).font(.subheadline).lineLimit(2)
+                                }
+                                Spacer()
+                                SessionStatusBadge(state: item.state)
+                                Button("세션 보기") { store.openDetail(sessionID: item.sessionID) }
+                            }.padding(16).sessionCard()
                         }
-                        Spacer()
-                        Text(item.state.koreanLabel).font(.caption).foregroundStyle(item.state.color)
-                        Button("세션 보기") { store.openDetail(sessionID: item.sessionID) }
-                    }.padding(.vertical, 7)
-                }.listStyle(.plain)
+                    }
+                }
             }
             HStack {
-                Text("\(items.count)개 작업").font(.caption).foregroundStyle(.secondary)
+                Text("\(items.count)개 작업").font(.caption).foregroundStyle(SessionTheme.muted)
                 Spacer()
                 Button("새로고침") { Task { await load() } }
             }
         }
         .padding(24).frame(minWidth: 650, minHeight: 420)
+        .sessionTheme()
         .task(id: date) { await load() }
         .sheet(isPresented: $showingExport) { HistoryExportView(store: store, initialDate: date) }
     }
@@ -88,7 +93,7 @@ private struct HistoryExportView: View {
                 Button("저장 위치 선택…") { Task { await save() } }
                     .disabled(loading || end < start).keyboardShortcut(.defaultAction)
             }
-        }.padding(24).frame(width: 420)
+        }.padding(24).frame(width: 420).sessionTheme()
     }
 
     private func save() async {

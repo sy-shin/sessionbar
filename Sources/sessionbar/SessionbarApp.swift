@@ -66,8 +66,12 @@ struct SessionListView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Image(systemName: "terminal.fill").foregroundStyle(.tint)
-                Text("sessionbar").font(.headline)
+                Image(systemName: "terminal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(SessionTheme.accent)
+                    .frame(width: 38, height: 38)
+                    .background(SessionTheme.inset, in: RoundedRectangle(cornerRadius: 12))
+                Text("sessionbar").font(.system(size: 22, weight: .semibold)).tracking(-0.7)
                 Spacer()
                 Button { store.openHistory() } label: { Image(systemName: "clock.arrow.circlepath") }
                     .help("활동 기록").accessibilityLabel("활동 기록")
@@ -76,8 +80,8 @@ struct SessionListView: View {
                 Button { NSApp.activate(ignoringOtherApps: true); openSettings() } label: { Image(systemName: "gearshape") }
                     .help("설정").accessibilityLabel("설정")
             }
-            .buttonStyle(.borderless)
-            .padding(16)
+            .buttonStyle(SessionIconButtonStyle())
+            .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 16)
 
             HStack(spacing: 9) {
                 ForEach(SessionState.allCases, id: \.self) { state in
@@ -86,23 +90,33 @@ struct SessionListView: View {
                         Image(systemName: state.symbol).foregroundStyle(state.color)
                         Text("\(count)").monospacedDigit()
                     }
+                    .padding(.horizontal, 9).padding(.vertical, 7)
+                    .background(count > 0 ? state.color.opacity(0.08) : SessionTheme.surface, in: Capsule())
                     .help("\(state.koreanLabel) \(count)개")
                     .accessibilityLabel("\(state.koreanLabel) \(count)개")
                 }
             }
-            .font(.caption)
+            .font(.system(size: 12, weight: .medium))
             .frame(maxWidth: .infinity)
             .padding(.bottom, 14)
 
             VStack(spacing: 10) {
-                Picker("세션", selection: $filter) {
-                    Text("열린 세션").tag(0)
-                    Text("전체").tag(1)
-                    Text("주의 필요").tag(2)
-                }.pickerStyle(.segmented)
-                TextField("프로젝트 또는 세션 검색", text: $search)
-                    .textFieldStyle(.roundedBorder)
-            }.padding(.horizontal, 16).padding(.bottom, 12)
+                HStack(spacing: 4) {
+                    ForEach(Array(["열린 세션", "전체", "주의 필요"].enumerated()), id: \.offset) { index, title in
+                        Button { filter = index } label: {
+                            Text(title).font(.system(size: 12, weight: filter == index ? .semibold : .medium))
+                                .foregroundStyle(filter == index ? SessionTheme.ink : SessionTheme.muted)
+                                .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                .background(filter == index ? SessionTheme.surface : .clear,
+                                            in: RoundedRectangle(cornerRadius: 8))
+                        }.buttonStyle(.plain).accessibilityValue(filter == index ? "선택됨" : "")
+                    }
+                }.padding(4).background(SessionTheme.inset, in: RoundedRectangle(cornerRadius: 11))
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(SessionTheme.muted)
+                    TextField("프로젝트 또는 세션 검색", text: $search).textFieldStyle(.plain)
+                }.padding(11).sessionCard(radius: 10)
+            }.padding(.horizontal, 20).padding(.bottom, 14)
 
             Divider()
             if store.isRefreshing && store.lastRefresh == nil {
@@ -116,16 +130,16 @@ struct SessionListView: View {
                 }.frame(maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 10) {
                         ForEach(visibleSessions) { session in
                             Button { store.openDetail(for: session) } label: {
                                 SessionRow(session: session)
-                                    .padding(.horizontal, 16).padding(.vertical, 12)
+                                    .padding(15)
+                                    .sessionCard()
                                     .contentShape(Rectangle())
                             }.buttonStyle(.plain)
-                            Divider().padding(.leading, 46)
                         }
-                    }
+                    }.padding(16)
                 }
             }
             Divider()
@@ -133,7 +147,7 @@ struct SessionListView: View {
                 if store.isRefreshing { ProgressView().controlSize(.small) }
                 else if let date = store.lastRefresh {
                     Text("갱신 \(date.formatted(date: .omitted, time: .shortened))")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(SessionTheme.muted)
                 }
                 Spacer()
                 if let until = settings.pauseUntil, until > Date() {
@@ -145,8 +159,9 @@ struct SessionListView: View {
                 }
                 Button("종료") { NSApp.terminate(nil) }
             }
-            .font(.caption).buttonStyle(.borderless).padding(12)
+            .font(.caption).buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 12)
         }
+        .sessionTheme()
     }
 }
 
@@ -155,24 +170,24 @@ private struct SessionRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: session.state.symbol)
-                .font(.system(size: 17)).foregroundStyle(session.state.color)
-                .frame(width: 20).padding(.top, 2)
-            VStack(alignment: .leading, spacing: 5) {
+                .font(.system(size: 14, weight: .medium)).foregroundStyle(session.state.color)
+                .frame(width: 30, height: 30)
+                .background(session.state.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 7) {
                 HStack {
                     Text(session.projectName.isEmpty ? "프로젝트 없음" : session.projectName)
                         .font(.headline).lineLimit(1)
                     Spacer()
-                    Text(session.state.koreanLabel)
-                        .font(.caption).foregroundStyle(session.state.color)
+                    SessionStatusBadge(state: session.state)
                 }
-                Text(session.title).font(.subheadline).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                Text(session.projectPath).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                Text(session.title).font(.system(size: 12)).lineSpacing(3).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                Text(session.projectPath).font(.caption2).foregroundStyle(SessionTheme.muted).lineLimit(1)
                 HStack {
                     if let terminal = session.runtime?.terminalName { Text(terminal) }
                     else if session.source != nil { Text("Codex") }
                     Spacer()
                     Text(session.lastActivity, style: .relative)
-                }.font(.caption2).foregroundStyle(.secondary)
+                }.font(.caption2).foregroundStyle(SessionTheme.muted)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -185,11 +200,11 @@ private struct SessionRow: View {
 extension SessionState {
     var color: Color {
         switch self {
-        case .needsAttentionEstimate: .orange
-        case .error: .red
-        case .runningEstimate: .blue
-        case .completed: .green
-        case .idleEstimate, .unknown: .secondary
+        case .needsAttentionEstimate: SessionTheme.adaptive(0xA36315, 0xE9BC76)
+        case .error: SessionTheme.adaptive(0xB84038, 0xF19D92)
+        case .runningEstimate: SessionTheme.adaptive(0x476D9E, 0xA1C1ED)
+        case .completed: SessionTheme.adaptive(0x407A59, 0x9BD4B1)
+        case .idleEstimate, .unknown: SessionTheme.muted
         }
     }
 }

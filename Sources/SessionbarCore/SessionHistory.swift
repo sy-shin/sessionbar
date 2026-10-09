@@ -38,9 +38,8 @@ public struct SessionHistoryIndex: Sendable {
     public init(url: URL) { self.url = url }
 
     public mutating func read(from start: Date, to end: Date) -> [SessionHistoryItem] {
-        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let size = (attributes[.size] as? NSNumber)?.uint64Value,
-              let changed = attributes[.modificationDate] as? Date else { return [] }
+        guard let metadata = SessionFileMetadata.read(url) else { return [] }
+        let size = metadata.size, changed = metadata.modified
         if size < offset || (size == offset && modification != nil && modification != changed) {
             self = SessionHistoryIndex(url: url)
         }

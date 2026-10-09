@@ -56,6 +56,8 @@ macOS 14 이상, Swift 6 이상과 Command Line Tools 또는 Xcode가 필요합�
 2. 세션을 선택하면 최신 응답과 활동을 볼 수 있습니다.
 3. 시계 버튼으로 날짜별 활동 기록을, 톱니바퀴 버튼으로 설정을 엽니다.
 
+기본 화면은 **크림색 배경과 흰색 카드**입니다. 설정에서 시스템 테마를 선택할 수 있습니다.
+
 기본 새로고침 간격은 **15초**, 완료·유휴 기록 보관 기간은 **30일**입니다. 파일이 바뀔 때도 목록을 갱신합니다.
 
 ### 검증
@@ -110,6 +112,8 @@ The output is `build/sessionbar.app`.
 1. Click the terminal icon in the menu bar to see open sessions.
 2. Select a session to read its latest reply and recent activity.
 3. Use the clock button for daily history and the gear button for settings.
+
+The default appearance uses a **cream background and white cards**. Choose the system appearance in settings to follow macOS.
 
 The default refresh interval is **15 seconds**, and completed and idle records are retained for **30 days**. File changes also refresh the list.
 

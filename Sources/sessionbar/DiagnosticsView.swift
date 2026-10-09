@@ -20,11 +20,11 @@ struct DiagnosticsView: View {
                 Text(store.diagnostics.joined(separator: "\n"))
                     .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.padding(16).sessionCard()
             Button("진단 복사") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString("sessionbar 0.1.0\n" + store.diagnostics.joined(separator: "\n"), forType: .string)
             }
-        }.padding(24).frame(minWidth: 560, minHeight: 360)
+        }.padding(24).frame(minWidth: 560, minHeight: 360).sessionTheme()
     }
 }

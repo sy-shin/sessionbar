@@ -63,9 +63,10 @@ final class SessionStore: ObservableObject {
         let directories = settings.sessionDirectories
         Task {
             let runtime = await processObserver.scan()
-            liveDirectories = runtime.byFile.keys.map { $0.deletingLastPathComponent().path }
-            updateWatcher()
             let result = await repository.scan(directories: directories, activeFiles: Array(runtime.byFile.keys))
+            liveDirectories = result.snapshots.keys.filter { runtime.byFile[$0] != nil }
+                .map { $0.deletingLastPathComponent().path }
+            updateWatcher()
             var byID: [String: (SessionRecord, URL)] = [:]
             let now = Date()
             for (url, snapshot) in result.snapshots {
@@ -87,6 +88,9 @@ final class SessionStore: ObservableObject {
             processCount = runtime.codexCount
             invalidFileCount = result.invalidFiles
             diagnostic = result.snapshots.isEmpty && result.failedDirectories == directories.count ? "세션 폴더를 읽을 수 없습니다" : nil
+            if sessions.isEmpty && runtime.codexCount > 0 && result.invalidFiles > 0 {
+                diagnostic = "세션 기록을 읽을 수 없습니다"
+            }
             lastRefresh = now
             let issues = result.failedDirectories + result.invalidFiles + result.malformedLines
             let message = "세션 \(allRecords.count) · Codex 프로세스 \(runtime.codexCount) · 읽기 문제 \(issues)"
@@ -154,6 +158,9 @@ final class SessionStore: ObservableObject {
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.minSize = NSSize(width: min(width, 650), height: min(height, 460))
         window.isReleasedWhenClosed = false
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.backgroundColor = NSColor(SessionTheme.canvas)
         window.title = title.isEmpty ? "sessionbar" : title
         window.contentView = NSHostingView(rootView: view)
         windows[id] = window
