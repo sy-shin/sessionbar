@@ -14,6 +14,7 @@ struct ProcessSnapshot: Sendable {
 
 actor ProcessObserver {
     private var lastKnownFiles: [URL: SessionRuntime] = [:]
+    private var generation: UInt64 = 0
 
     private func unavailable(count: Int) -> ProcessSnapshot {
         ProcessSnapshot(byFile: [:], codexCount: count, available: false).recovering(lastKnownFiles) { runtime in
@@ -29,8 +30,10 @@ actor ProcessObserver {
         let startTime: UInt64?
     }
 
-    func scan() -> ProcessSnapshot {
-        let ps = CommandRunner.run("/bin/ps", ["-axo", "pid=,ppid=,tty=,comm="])
+    func scan() async -> ProcessSnapshot {
+        generation &+= 1
+        let scanGeneration = generation
+        let ps = await CommandRunner.runAsync("/bin/ps", ["-axo", "pid=,ppid=,tty=,comm="])
         guard ps.status == 0 else { return unavailable(count: 0) }
         var processes: [Int32: Entry] = [:]
         for line in ps.output.split(whereSeparator: \.isNewline) {
@@ -42,9 +45,12 @@ actor ProcessObserver {
             processes[id] = Entry(id: id, parent: parent, tty: tty, command: command, startTime: startTime)
         }
         let codex = processes.values.filter { URL(fileURLWithPath: $0.command).lastPathComponent == "codex" }
-        guard !codex.isEmpty else { lastKnownFiles = [:]; return ProcessSnapshot(byFile: [:], codexCount: 0, available: true) }
+        guard !codex.isEmpty else {
+            if scanGeneration == generation { lastKnownFiles = [:] }
+            return ProcessSnapshot(byFile: [:], codexCount: 0, available: true)
+        }
         let ids = codex.map { String($0.id) }.joined(separator: ",")
-        let files = CommandRunner.run("/usr/sbin/lsof", ["-a", "-p", ids, "-n", "-P", "-F", "pftn"], timeout: 5)
+        let files = await CommandRunner.runAsync("/usr/sbin/lsof", ["-a", "-p", ids, "-n", "-P", "-F", "pftn"], timeout: 5)
         guard !files.timedOut, files.status == 0 || files.status == 1 else {
             return unavailable(count: codex.count)
         }
@@ -67,7 +73,7 @@ actor ProcessObserver {
                 }
             }
         }
-        let panes = tmuxPanes()
+        let panes = await tmuxPanes()
         var result: [URL: SessionRuntime] = [:]
         for (pid, url) in rollouts {
             guard let entry = processes[pid] else { continue }
@@ -117,7 +123,7 @@ actor ProcessObserver {
                                          tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime, originAppProcessID: originAppPID)
             if result[url]?.tty == nil || runtime.tty != nil { result[url] = runtime }
         }
-        lastKnownFiles = result
+        if scanGeneration == generation { lastKnownFiles = result }
         return ProcessSnapshot(byFile: result, codexCount: codex.count, available: true)
     }
 
@@ -128,11 +134,11 @@ actor ProcessObserver {
         let clientTTY: String?
     }
 
-    private func tmuxPanes() -> [String: Pane] {
+    private func tmuxPanes() async -> [String: Pane] {
         guard let executable = Self.tmuxExecutable else { return [:] }
-        let paneList = CommandRunner.run(executable, ["list-panes", "-a", "-F", "#{pane_tty}\t#{pane_id}\t#{session_name}\t#{window_id}"])
+        let paneList = await CommandRunner.runAsync(executable, ["list-panes", "-a", "-F", "#{pane_tty}\t#{pane_id}\t#{session_name}\t#{window_id}"])
         guard paneList.status == 0 else { return [:] }
-        let clientList = CommandRunner.run(executable, ["list-clients", "-F", "#{session_name}\t#{client_tty}"])
+        let clientList = await CommandRunner.runAsync(executable, ["list-clients", "-F", "#{session_name}\t#{client_tty}"])
         var clients: [String: [String]] = [:]
         for line in clientList.output.split(whereSeparator: \.isNewline) {
             let fields = line.split(separator: "\t", omittingEmptySubsequences: false)

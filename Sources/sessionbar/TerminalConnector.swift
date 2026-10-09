@@ -38,12 +38,10 @@ enum TerminalConnector {
         if let pane = runtime.tmuxPane {
             guard let session = runtime.tmuxSession, let window = runtime.tmuxWindow,
                   let client = runtime.tmuxClientTTY, let executable = ProcessObserver.tmuxExecutable else { return .tmuxUnavailable }
-            let ok = await Task.detached(priority: .userInitiated) {
-                let first = CommandRunner.run(executable, ["select-pane", "-t", pane])
-                let second = CommandRunner.run(executable, ["select-window", "-t", window])
-                let third = CommandRunner.run(executable, ["switch-client", "-c", client, "-t", session])
-                return first.status == 0 && second.status == 0 && third.status == 0
-            }.value
+            let first = await CommandRunner.runAsync(executable, ["select-pane", "-t", pane])
+            let second = await CommandRunner.runAsync(executable, ["select-window", "-t", window])
+            let third = await CommandRunner.runAsync(executable, ["switch-client", "-c", client, "-t", session])
+            let ok = first.status == 0 && second.status == 0 && third.status == 0
             guard ok else { return .tmuxUnavailable }
         }
         guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return .unsupported }

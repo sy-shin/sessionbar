@@ -35,14 +35,14 @@ actor SessionProcessController {
         let pid = runtime.processID
         guard let expected = runtime.processStartTime else { return .unavailable }
         guard Self.startTime(of: pid) == expected else { return .changed }
-        let owners = CommandRunner.run("/usr/sbin/lsof", ["-n", "-P", "-F", "p", "--", file.path], timeout: 3)
+        let owners = await CommandRunner.runAsync("/usr/sbin/lsof", ["-n", "-P", "-F", "p", "--", file.path], timeout: 3)
         guard !owners.timedOut, owners.status == 0 else { return .unavailable }
         let codexOwners = Set(owners.output.split(whereSeparator: \.isNewline).compactMap { line -> Int32? in
             guard line.first == "p", let owner = Int32(line.dropFirst()), Self.startTime(of: owner) != nil else { return nil }
             return owner
         })
         guard codexOwners == [pid] else { return codexOwners.count > 1 ? .ambiguous : .changed }
-        let files = CommandRunner.run("/usr/sbin/lsof", ["-a", "-p", String(pid), "-n", "-P", "-F", "ftn"], timeout: 3)
+        let files = await CommandRunner.runAsync("/usr/sbin/lsof", ["-a", "-p", String(pid), "-n", "-P", "-F", "ftn"], timeout: 3)
         guard !files.timedOut, files.status == 0 else { return .unavailable }
         if let error = Self.validationError(files.output, expected: file) { return error }
         // Recheck birth time after lsof so a stale or reused PID is rejected.

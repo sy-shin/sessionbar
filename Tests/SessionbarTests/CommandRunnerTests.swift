@@ -5,7 +5,7 @@ import Testing
 @Suite struct CommandRunnerTests {
     @Test func concurrentCommandsDoNotNeedAnotherCooperativeWorker() async {
         let results = await withTaskGroup(of: CommandResult.self, returning: [CommandResult].self) { group in
-            for _ in 0..<8 { group.addTask { CommandRunner.run("/usr/bin/printf", ["%s", "fixture"]) } }
+            for _ in 0..<8 { group.addTask { await CommandRunner.runAsync("/usr/bin/printf", ["%s", "fixture"]) } }
             var results: [CommandResult] = []
             for await result in group { results.append(result) }
             return results

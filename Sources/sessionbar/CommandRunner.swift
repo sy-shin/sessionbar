@@ -8,6 +8,14 @@ struct CommandResult: Sendable {
 }
 
 enum CommandRunner {
+    static func runAsync(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3) async -> CommandResult {
+        await withCheckedContinuation { continuation in
+            DispatchQueue(label: "io.sessionbar.command", qos: .utility).async {
+                continuation.resume(returning: run(executable, arguments, timeout: timeout))
+            }
+        }
+    }
+
     /// Called only from worker actors/queues. Output stays in memory and is never logged.
     static func run(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3) -> CommandResult {
         let process = Process()

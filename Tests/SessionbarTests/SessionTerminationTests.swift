@@ -5,7 +5,7 @@ import SessionbarCore
 @testable import sessionbar
 
 @Suite struct SessionTerminationTests {
-    private func fixture() throws -> (URL, URL, URL, Data) {
+    private func fixture() async throws -> (URL, URL, URL, Data) {
         let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-quit-\(UUID().uuidString)")
         let sessions = root.appending(path: "sessions")
         try FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
@@ -24,7 +24,7 @@ import SessionbarCore
           for(;;)pause();
         }
         """.write(to: source, atomically: true, encoding: .utf8)
-        let compilation = CommandRunner.run("/usr/bin/clang", [source.path, "-o", executable.path])
+        let compilation = await CommandRunner.runAsync("/usr/bin/clang", [source.path, "-o", executable.path])
         #expect(compilation.status == 0)
         let data = Data("{\"type\":\"session_meta\",\"payload\":{\"id\":\"fixture\",\"cwd\":\"/tmp/project\"}}\n".utf8)
         let file = sessions.appending(path: "rollout-fixture.jsonl")
@@ -54,7 +54,7 @@ import SessionbarCore
     }
 
     @Test func quitsOnlySelectedProcessAndKeepsSessionFile() async throws {
-        let (root, executable, file, data) = try fixture()
+        let (root, executable, file, data) = try await fixture()
         defer { try? FileManager.default.removeItem(at: root) }
         let otherFile = file.deletingLastPathComponent().appending(path: "rollout-other.jsonl")
         try data.write(to: otherFile)
@@ -83,7 +83,7 @@ import SessionbarCore
     }
 
     @Test func rejectsStaleIdentityWrongFileAndSharedProcess() async throws {
-        let (root, executable, file, _) = try fixture()
+        let (root, executable, file, _) = try await fixture()
         defer { try? FileManager.default.removeItem(at: root) }
         let process = try launch(executable, [file.path])
         defer { cleanup(process) }
@@ -116,7 +116,7 @@ import SessionbarCore
     }
 
     @Test func reportsTimeoutWithoutForceKilling() async throws {
-        let (root, executable, file, data) = try fixture()
+        let (root, executable, file, data) = try await fixture()
         defer { try? FileManager.default.removeItem(at: root) }
         let process = try launch(executable, [file.path, "--ignore-term"])
         defer { cleanup(process) }
