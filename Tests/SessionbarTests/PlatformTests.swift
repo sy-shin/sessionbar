@@ -123,6 +123,39 @@ import AppKit
         #expect(later.activeCount == 3)
     }
 
+    @Test func attentionOnlyIncludesOpenSessionsAndPreservesPastRecordsInAll() {
+        func record(_ id: String, _ state: SessionState, live: Bool) -> SessionRecord {
+            SessionRecord(id: id, projectPath: "/tmp/project", title: "Fixture",
+                lastActivity: Date(timeIntervalSince1970: 1), state: state, source: nil,
+                runtime: live ? SessionRuntime(processID: 1) : nil)
+        }
+        let records = [record("live-attention", .needsAttentionEstimate, live: true),
+                       record("live-error", .error, live: true),
+                       record("past-error", .error, live: false),
+                       record("past-attention", .needsAttentionEstimate, live: false),
+                       record("live-idle", .idleEstimate, live: true),
+                       record("live-complete", .completed, live: true),
+                       record("live-unknown", .unknown, live: true)]
+        #expect(records.filter(SessionListFilter.attention.contains).map(\.id) == ["live-attention", "live-error"])
+        #expect(records.filter(SessionListFilter.openSessions.contains).count == 5)
+        #expect(records.filter(SessionListFilter.allSessions.contains).count == records.count)
+        for filter in [SessionListFilter.openSessions, .attention] {
+            let summary = filter.summaryRecords(records)
+            #expect(summary.filter { $0.state == .error }.count == 1)
+            #expect(summary.filter { $0.state == .needsAttentionEstimate }.count == 1)
+            #expect(summary.count == 5)
+        }
+        #expect(SessionListFilter.allSessions.summaryRecords(records).count == 7)
+        let menu = SessionMenuSummary(records: records, activeCount: 5)
+        #expect(menu.attention == 1)
+        #expect(menu.errors == 1)
+        let ended = records.filter { $0.runtime == nil }
+        #expect(ended.filter(SessionListFilter.attention.contains).isEmpty)
+        #expect(SessionMenuSummary(records: ended, activeCount: 0).attention == 0)
+        #expect(SessionMenuSummary(records: ended, activeCount: 0).errors == 0)
+        #expect(L10n.text("주의가 필요한 세션이 없습니다", language: .english) == "No sessions need attention")
+    }
+
     @MainActor @Test func fileChangeMonitorObservesUpdates() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-watch-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

@@ -43,6 +43,40 @@ struct SessionInventory {
     }
 }
 
+enum SessionListFilter: CaseIterable {
+    case openSessions, allSessions, attention
+
+    var title: String {
+        switch self {
+        case .openSessions: return L10n.text("열린 세션")
+        case .allSessions: return L10n.text("전체")
+        case .attention: return L10n.text("주의 필요")
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .openSessions: return L10n.text("열린 세션이 없습니다")
+        case .allSessions: return L10n.text("표시할 세션이 없습니다")
+        case .attention: return L10n.text("주의가 필요한 세션이 없습니다")
+        }
+    }
+
+    func contains(_ record: SessionRecord) -> Bool {
+        switch self {
+        case .openSessions: return record.runtime != nil
+        case .allSessions: return true
+        case .attention:
+            return record.runtime != nil &&
+                (record.state == .needsAttentionEstimate || record.state == .error)
+        }
+    }
+
+    func summaryRecords(_ records: [SessionRecord]) -> [SessionRecord] {
+        self == .allSessions ? records : records.filter { $0.runtime != nil }
+    }
+}
+
 struct SessionMenuSummary {
     let running: Int
     let active: Int
@@ -52,8 +86,8 @@ struct SessionMenuSummary {
         let unique = Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }).values
         running = unique.filter { $0.state == .runningEstimate && $0.runtime != nil }.count
         active = activeCount
-        attention = unique.filter { $0.state == .needsAttentionEstimate }.count
-        errors = unique.filter { $0.state == .error }.count
+        attention = unique.filter { $0.state == .needsAttentionEstimate && $0.runtime != nil }.count
+        errors = unique.filter { $0.state == .error && $0.runtime != nil }.count
     }
     func title(compact: Bool, language: AppLanguage = L10n.language) -> String {
         if compact { return "\(running)/\(active)" }

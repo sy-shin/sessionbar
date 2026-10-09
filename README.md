@@ -40,6 +40,8 @@
 
 프로젝트명, 요청 요약, 상태, 마지막 활동과 터미널 정보를 함께 보여줍니다. 검색으로 프로젝트를 찾거나 **열린 세션 · 전체 · 주의 필요** 중 필요한 목록을 선택하세요.
 
+**주의 필요**에는 현재 열린 세션의 확인 필요 추정과 오류가 표시됩니다. 지난 세션은 **전체**에서 확인할 수 있습니다.
+
 <p align="center">
   <img src="Assets/screenshots/000_세션목록_한국어.png" alt="sessionbar 세션 목록: 확인 필요, 실행 중, 완료와 유휴 상태의 예시" width="460">
 </p>
@@ -144,6 +146,8 @@ cd sessionbar
 ### 1. See your sessions together
 
 Each session shows its project, request summary, status, last activity, and available terminal information. Search for a project or choose **Open sessions · All · Attention**.
+
+**Attention** shows attention estimates and errors in currently open sessions. Past sessions remain available in **All**.
 
 <p align="center">
   <img src="Assets/screenshots/000_세션목록_영문.png" alt="sessionbar session list showing attention, running, completed, and idle examples" width="460">

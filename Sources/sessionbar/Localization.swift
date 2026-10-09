@@ -132,6 +132,7 @@ enum L10n {
         "프로젝트 또는 세션 검색": "Search projects or sessions",
         "열린 세션이 없습니다": "No open sessions",
         "표시할 세션이 없습니다": "No sessions to display",
+        "주의가 필요한 세션이 없습니다": "No sessions need attention",
         "세션 기록 보기": "View session history",
         "세션 없음": "No sessions",
         "제목 없음": "Untitled",

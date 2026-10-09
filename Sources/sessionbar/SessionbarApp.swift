@@ -47,14 +47,12 @@ struct SessionListView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var settings: AppSettings
     @Environment(\.openSettings) private var openSettings
-    @State private var filter = 0
+    @State private var filter = SessionListFilter.openSessions
     @State private var search = ""
 
     private var visibleSessions: [SessionRecord] {
         store.sessions.filter { record in
-            let matchesFilter = filter == 1 || (filter == 0 && record.runtime != nil) ||
-                (filter == 2 && (record.state == .needsAttentionEstimate || record.state == .error))
-            return matchesFilter && (search.isEmpty || (record.projectName + record.title + record.projectPath).localizedCaseInsensitiveContains(search))
+            return filter.contains(record) && (search.isEmpty || (record.projectName + record.title + record.projectPath).localizedCaseInsensitiveContains(search))
         }
     }
 
@@ -80,7 +78,7 @@ struct SessionListView: View {
 
             HStack(spacing: 9) {
                 ForEach(SessionState.allCases, id: \.self) { state in
-                    let count = store.sessions.filter { $0.state == state }.count
+                    let count = filter.summaryRecords(store.sessions).filter { $0.state == state }.count
                     HStack(spacing: 3) {
                         Image(systemName: state.symbol).foregroundStyle(state.color)
                         Text("\(count)").monospacedDigit()
@@ -97,14 +95,14 @@ struct SessionListView: View {
 
             VStack(spacing: 10) {
                 HStack(spacing: 4) {
-                    ForEach(Array([L10n.text("열린 세션"), L10n.text("전체"), L10n.text("주의 필요")].enumerated()), id: \.offset) { index, title in
-                        Button { filter = index } label: {
-                            Text(title).font(.system(size: 12, weight: filter == index ? .semibold : .medium))
-                                .foregroundStyle(filter == index ? SessionTheme.ink : SessionTheme.muted)
+                    ForEach(SessionListFilter.allCases, id: \.self) { option in
+                        Button { filter = option } label: {
+                            Text(option.title).font(.system(size: 12, weight: filter == option ? .semibold : .medium))
+                                .foregroundStyle(filter == option ? SessionTheme.ink : SessionTheme.muted)
                                 .frame(maxWidth: .infinity).padding(.vertical, 8)
-                                .background(filter == index ? SessionTheme.surface : .clear,
+                                .background(filter == option ? SessionTheme.surface : .clear,
                                             in: RoundedRectangle(cornerRadius: 8))
-                        }.buttonStyle(.plain).accessibilityValue(filter == index ? L10n.text("선택됨") : "")
+                        }.buttonStyle(.plain).accessibilityValue(filter == option ? L10n.text("선택됨") : "")
                     }
                 }.padding(4).background(SessionTheme.inset, in: RoundedRectangle(cornerRadius: 11))
                 HStack(spacing: 8) {
@@ -120,8 +118,8 @@ struct SessionListView: View {
                 ContentUnavailableView(L10n.text(diagnostic), systemImage: "folder.badge.questionmark")
             } else if visibleSessions.isEmpty {
                 VStack(spacing: 12) {
-                    ContentUnavailableView(filter == 0 ? L10n.text("열린 세션이 없습니다") : L10n.text("표시할 세션이 없습니다"), systemImage: "terminal")
-                    if filter == 0 && !store.sessions.isEmpty { Button(L10n.text("세션 기록 보기")) { filter = 1 }.padding(.bottom, 28) }
+                    ContentUnavailableView(search.isEmpty ? filter.emptyMessage : L10n.text("표시할 세션이 없습니다"), systemImage: "terminal")
+                    if filter == .openSessions && !store.sessions.isEmpty { Button(L10n.text("세션 기록 보기")) { filter = .allSessions }.padding(.bottom, 28) }
                 }.frame(maxHeight: .infinity)
             } else {
                 ScrollView {
