@@ -5,7 +5,7 @@ import Testing
 @Suite struct NotificationTests {
     private func record(_ state: SessionState, at date: Date) -> SessionRecord {
         SessionRecord(id: "sample", projectPath: "/tmp/project", title: "sample", lastActivity: date,
-                      state: state, source: "cli", stateRecordedAt: date)
+                      state: state, source: "cli", runtime: state == .needsAttentionEstimate ? SessionRuntime(processID: 1) : nil, stateRecordedAt: date)
     }
 
     @Test func historicalCompletionDoesNotNotifyAndNewTransitionsNotifyOnce() {
@@ -43,5 +43,33 @@ import Testing
         let second = record(.needsAttentionEstimate, at: morning.addingTimeInterval(1))
         #expect(tracker.observe([second], preferences: preferences, now: morning.addingTimeInterval(1), calendar: calendar).isEmpty)
         #expect(tracker.observe([second], preferences: preferences, now: morning.addingTimeInterval(601), calendar: calendar).count == 1)
+    }
+}
+
+extension NotificationTests {
+    @Test func lateHistoricalDiscoveryDoesNotNotifyAndFailedDeliveryRetries() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var tracker = NotificationTracker(), preferences = NotificationPreferences()
+        preferences.completion = true
+        _ = tracker.observe([], preferences: preferences, now: now)
+        #expect(tracker.observe([record(.completed, at: now.addingTimeInterval(-100))], preferences: preferences, now: now.addingTimeInterval(1)).isEmpty)
+        let current = record(.completed, at: now.addingTimeInterval(2))
+        #expect(tracker.observe([current], preferences: preferences, now: now.addingTimeInterval(2)).count == 1)
+        tracker.deliveryFailed(current)
+        #expect(tracker.observe([current], preferences: preferences, now: now.addingTimeInterval(3)).count == 1)
+    }
+
+    @Test func queuedResultsCancelWhenNewWorkStartsAndStaleRequestsDoNotDeliver() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var tracker = NotificationTracker(), preferences = NotificationPreferences()
+        preferences.completion = true; preferences.attention = true; preferences.pauseUntil = now.addingTimeInterval(60)
+        _ = tracker.observe([], preferences: preferences, now: now)
+        _ = tracker.observe([record(.completed, at: now.addingTimeInterval(1))], preferences: preferences, now: now.addingTimeInterval(2))
+        #expect(tracker.observe([record(.runningEstimate, at: now.addingTimeInterval(3))], preferences: preferences, now: now.addingTimeInterval(61)).isEmpty)
+        var attentionTracker = NotificationTracker()
+        _ = attentionTracker.observe([record(.needsAttentionEstimate, at: now)], preferences: preferences, now: now)
+        let stale = SessionRecord(id: "sample", projectPath: "/tmp/project", title: "sample", lastActivity: now, state: .unknown, source: nil, runtime: SessionRuntime(processID: 1), stateRecordedAt: now, isRuntimeStale: true)
+        #expect(attentionTracker.observe([stale], preferences: preferences, now: now.addingTimeInterval(61)).isEmpty)
+        #expect(attentionTracker.observe([record(.needsAttentionEstimate, at: now)], preferences: preferences, now: now.addingTimeInterval(62)).count == 1)
     }
 }

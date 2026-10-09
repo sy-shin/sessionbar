@@ -31,15 +31,15 @@ private struct SessionMenuLabel: View {
     @ObservedObject var settings: AppSettings
 
     var body: some View {
-        let summary = SessionMenuSummary(records: store.sessions, activeCount: store.activeSessionCount)
-        let attention = summary.attention, running = summary.running, errors = summary.errors
+        let summary = SessionMenuSummary(records: store.sessions, activeCount: store.activeSessionCount, unreviewedCount: store.unreviewed.count, processObservationAvailable: store.processObservationAvailable)
+        let attention = summary.attention, errors = summary.errors
         HStack(spacing: 4) {
-            Image(systemName: attention > 0 ? "exclamationmark.bubble.fill" : errors > 0 ? "exclamationmark.triangle.fill" : "terminal")
-                .foregroundStyle(attention > 0 ? Color.orange : errors > 0 ? Color.red : Color.primary)
+            Image(systemName: attention > 0 ? "exclamationmark.bubble.fill" : errors > 0 ? "exclamationmark.triangle.fill" : summary.unreviewed > 0 ? "circle.badge" : "terminal")
+                .foregroundStyle(attention > 0 ? Color.orange : errors > 0 ? Color.red : summary.unreviewed > 0 ? SessionTheme.accent : Color.primary)
             Text(summary.title(compact: settings.compactMenu)).monospacedDigit()
         }
-        .accessibilityLabel(L10n.format("실행 추정 %d개, 활성 세션 %d개, 확인 필요 추정 %d개", running, store.activeSessionCount, attention))
-        .help(L10n.format("실행 추정 %d개, 활성 세션 %d개, 확인 필요 추정 %d개", running, store.activeSessionCount, attention))
+        .accessibilityLabel(summary.title(compact: false))
+        .help(summary.title(compact: false))
     }
 }
 
@@ -54,8 +54,15 @@ struct SessionListView: View {
     @State private var terminationError: String?
 
     private var visibleSessions: [SessionRecord] {
-        store.sessions.filter { record in
-            return filter.contains(record) && (search.isEmpty || (record.projectName + record.title + record.projectPath).localizedCaseInsensitiveContains(search))
+        let records = store.sessions.filter { record in
+            return filter.contains(record) && (filter != .unreviewed || store.unreviewed[record.id] != nil) && (search.isEmpty || (record.projectName + record.title + record.projectPath).localizedCaseInsensitiveContains(search))
+        }
+        guard filter == .unreviewed else { return records }
+        return records.sorted {
+            guard let first = store.unreviewed[$0.id], let second = store.unreviewed[$1.id] else { return false }
+            let rank: [SessionReviewEvent.Kind: Int] = [.attention: 0, .error: 1, .completed: 2]
+            if first.kind != second.kind { return (rank[first.kind] ?? 3) < (rank[second.kind] ?? 3) }
+            return first.date < second.date
         }
     }
 
@@ -81,7 +88,7 @@ struct SessionListView: View {
 
             HStack(spacing: 9) {
                 ForEach(SessionState.allCases, id: \.self) { state in
-                    let count = filter.summaryRecords(store.sessions).filter { $0.state == state }.count
+                    let count = (filter == .unreviewed ? visibleSessions : filter.summaryRecords(store.sessions)).filter { $0.state == state }.count
                     HStack(spacing: 3) {
                         Image(systemName: state.symbol).foregroundStyle(state.color)
                         Text("\(count)").monospacedDigit()
@@ -121,27 +128,16 @@ struct SessionListView: View {
                 ContentUnavailableView(L10n.text(diagnostic), systemImage: "folder.badge.questionmark")
             } else if visibleSessions.isEmpty {
                 VStack(spacing: 12) {
-                    ContentUnavailableView(search.isEmpty ? filter.emptyMessage : L10n.text("표시할 세션이 없습니다"), systemImage: "terminal")
+                    ContentUnavailableView(search.isEmpty ? (filter == .openSessions && !store.processObservationAvailable ? L10n.text("프로세스 상태를 확인할 수 없습니다") : filter.emptyMessage) : L10n.text("표시할 세션이 없습니다"), systemImage: "terminal")
                     if filter == .openSessions && !store.sessions.isEmpty { Button(L10n.text("세션 기록 보기")) { filter = .allSessions }.padding(.bottom, 28) }
                 }.frame(maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(visibleSessions) { session in
-                            Button { store.openDetail(for: session) } label: {
-                                SessionRow(session: session)
-                                    .padding(15)
-                                    .sessionCard()
-                                    .contentShape(Rectangle())
-                            }.buttonStyle(.plain)
-                                .contextMenu {
-                                    if session.runtime != nil {
-                                        Button(L10n.text("Codex 종료…"), role: .destructive) {
-                                            terminationTarget = session
-                                            confirmingTermination = true
-                                        }.disabled(session.runtime?.processStartTime == nil || store.terminatingSessionIDs.contains(session.id))
-                                    }
-                                }
+                            SessionListCard(store: store, session: session) {
+                                terminationTarget = session; confirmingTermination = true
+                            }
                         }
                     }.padding(16)
                 }
@@ -176,8 +172,39 @@ struct SessionListView: View {
     }
 }
 
+private struct SessionListCard: View {
+    @ObservedObject var store: SessionStore
+    let session: SessionRecord
+    let requestTermination: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button { store.openDetail(for: session) } label: {
+                SessionRow(session: session, review: store.unreviewed[session.id]).contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            if SessionWindowConnector.canReturn(session.runtime) || store.unreviewed[session.id] != nil {
+                Divider()
+                HStack(alignment: .top) {
+                    if SessionWindowConnector.canReturn(session.runtime) { SessionReturnButton(store: store, session: session) }
+                    Spacer()
+                    if let review = store.unreviewed[session.id] {
+                        Button(L10n.text("확인 완료")) { store.markReviewed(id: session.id, token: review.token) }
+                    }
+                }.font(.caption).buttonStyle(.borderless)
+            }
+        }.padding(15).sessionCard()
+        .contextMenu {
+            if session.runtime != nil {
+                Button(L10n.text("Codex 종료…"), role: .destructive, action: requestTermination)
+                    .disabled(session.runtime?.processStartTime == nil || store.terminatingSessionIDs.contains(session.id))
+            }
+        }
+    }
+}
+
 private struct SessionRow: View {
     let session: SessionRecord
+    let review: SessionReviewEvent?
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: session.state.symbol)
@@ -193,6 +220,13 @@ private struct SessionRow: View {
                 }
                 Text(session.isPlaceholder ? L10n.text(session.title) : session.title).font(.system(size: 12)).lineSpacing(3).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 Text(session.projectPath).font(.caption2).foregroundStyle(SessionTheme.muted).lineLimit(1)
+                if let review {
+                    HStack(spacing: 5) {
+                        Image(systemName: "circle.fill").font(.system(size: 5))
+                        Text(review.kind.localizedLabel)
+                        if review.kind == .attention { Text(review.date, style: .relative) }
+                    }.font(.caption2).foregroundStyle(SessionTheme.accent)
+                }
                 HStack {
                     if let terminal = session.runtime?.terminalName { Text(terminal) }
                     else if session.source != nil { Text("Codex") }
@@ -203,7 +237,7 @@ private struct SessionRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([session.projectName, session.state.localizedLabel, L10n.text(session.title), activityTime].joined(separator: ", "))
+        .accessibilityLabel([session.projectName, session.state.localizedLabel, L10n.text(session.title), review?.kind.localizedLabel ?? "", activityTime].filter { !$0.isEmpty }.joined(separator: ", "))
         .accessibilityHint(L10n.text(session.evidence))
         .help(L10n.text(session.evidence) + " · " + activityTime)
     }

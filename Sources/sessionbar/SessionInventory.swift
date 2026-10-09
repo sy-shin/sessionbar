@@ -38,19 +38,28 @@ struct SessionInventory {
             }
         }
         placeholderIDs = placeholderIDs.filter { runtime.byFile[$0.key] != nil }
-        records = byID.mapValues { $0.0 }; urls = byID.mapValues { $0.1 }
+        records = byID.mapValues { entry in
+            let record = entry.0
+            guard !runtime.available, record.runtime != nil else { return record }
+            return SessionRecord(id: record.id, projectPath: record.projectPath, title: record.title,
+                lastActivity: record.lastActivity, state: .unknown, source: record.source,
+                evidence: "프로세스 상태를 확인할 수 없습니다", runtime: record.runtime,
+                stateRecordedAt: record.stateRecordedAt, isPlaceholder: record.isPlaceholder, isRuntimeStale: true)
+        }
+        urls = byID.mapValues { $0.1 }
         activeCount = activeIDs.count
     }
 }
 
 enum SessionListFilter: CaseIterable {
-    case openSessions, allSessions, attention
+    case openSessions, allSessions, attention, unreviewed
 
     var title: String {
         switch self {
         case .openSessions: return L10n.text("열린 세션")
         case .allSessions: return L10n.text("전체")
         case .attention: return L10n.text("주의 필요")
+        case .unreviewed: return L10n.text("미확인")
         }
     }
 
@@ -59,6 +68,7 @@ enum SessionListFilter: CaseIterable {
         case .openSessions: return L10n.text("열린 세션이 없습니다")
         case .allSessions: return L10n.text("표시할 세션이 없습니다")
         case .attention: return L10n.text("주의가 필요한 세션이 없습니다")
+        case .unreviewed: return L10n.text("확인할 작업이 없습니다")
         }
     }
 
@@ -69,6 +79,7 @@ enum SessionListFilter: CaseIterable {
         case .attention:
             return record.runtime != nil &&
                 (record.state == .needsAttentionEstimate || record.state == .error)
+        case .unreviewed: return true
         }
     }
 
@@ -82,16 +93,24 @@ struct SessionMenuSummary {
     let active: Int
     let attention: Int
     let errors: Int
-    init(records: [SessionRecord], activeCount: Int) {
+    let unreviewed: Int
+    let activeEstimated: Bool
+    init(records: [SessionRecord], activeCount: Int, unreviewedCount: Int = 0, processObservationAvailable: Bool = true) {
         let unique = Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }).values
         running = unique.filter { $0.state == .runningEstimate && $0.runtime != nil }.count
         active = activeCount
+        unreviewed = unreviewedCount
+        activeEstimated = !processObservationAvailable || unique.contains { $0.isRuntimeStale }
         attention = unique.filter { $0.state == .needsAttentionEstimate && $0.runtime != nil }.count
         errors = unique.filter { $0.state == .error && $0.runtime != nil }.count
     }
     func title(compact: Bool, language: AppLanguage = L10n.language) -> String {
-        if compact { return "\(running)/\(active)" }
-        let counts = String(format: L10n.text("실행 중~ %d · 활성 %d", language: language), running, active)
-        return attention > 0 ? String(format: L10n.text("확인~ %d · %@", language: language), attention, counts) : counts
+        if activeEstimated && active == 0 {
+            return compact ? "\(running)/?" : String(format: L10n.text("실행 중~ %d · 활성 ?", language: language), running)
+        }
+        if compact { return "\(running)/\(activeEstimated ? "~" : "")\(active)" }
+        let counts = String(format: L10n.text(activeEstimated ? "실행 중~ %d · 활성~ %d" : "실행 중~ %d · 활성 %d", language: language), running, active)
+        if attention > 0 { return String(format: L10n.text("확인~ %d · %@", language: language), attention, counts) }
+        return unreviewed > 0 ? String(format: L10n.text("미확인 %d · %@", language: language), unreviewed, counts) : counts
     }
 }

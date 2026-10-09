@@ -34,11 +34,11 @@
 | 승인이나 사용자 입력을 기다리는 세션을 찾을 때 | **주의 필요** 필터로 해당 세션을 모아 보고, 확인 필요 추정 알림을 받을 수 있습니다. |
 | 다른 작업을 하다가 Codex 결과를 확인할 때 | 세션을 눌러 **최신 응답과 최근 활동**을 읽습니다. |
 | 이전에 끝낸 작업을 다시 확인할 때 | **날짜별 완료·오류 기록**을 찾아보고, 필요한 기간을 CSV로 저장합니다. |
-| 작업을 이어갈 프로젝트를 찾을 때 | **프로젝트 폴더를 열거나 세션 ID·재개 명령을 복사**합니다. |
+| 작업을 이어갈 프로젝트를 찾을 때 | **작업 창으로 이동**하거나 프로젝트 폴더·재개 명령을 사용합니다. |
 
 ### 1. 여러 세션을 한눈에 확인
 
-프로젝트명, 요청 요약, 상태, 마지막 활동과 터미널 정보를 함께 보여줍니다. 검색으로 프로젝트를 찾거나 **열린 세션 · 전체 · 주의 필요** 중 필요한 목록을 선택하세요.
+프로젝트명, 요청 요약, 상태, 마지막 활동과 터미널 정보를 함께 보여줍니다. 검색으로 프로젝트를 찾거나 **열린 세션 · 전체 · 주의 필요 · 미확인** 중 필요한 목록을 선택하세요.
 
 **주의 필요**에는 현재 열린 세션의 확인 필요 추정과 오류가 표시됩니다. 지난 세션은 **전체**에서 확인할 수 있습니다.
 
@@ -62,7 +62,19 @@
 
 세션을 선택하면 **최신 Codex 응답과 최근 활동**이 열립니다. 창 크기를 조절하면서 결과를 읽고, 프로젝트 폴더를 열거나 재개 명령을 복사할 수 있습니다.
 
-열려 있는 세션은 상세 화면의 **Codex 종료…** 또는 목록의 우클릭 메뉴에서 종료할 수 있습니다. 종료할 세션을 확인하면 해당 Codex가 닫히고, 대화 기록은 남습니다. 다시 작업하려면 재개 명령을 사용하세요.
+#### 미확인 작업 정리
+
+**미확인**에서 승인·입력 요청, 아직 읽지 않은 완료 결과, 확인하지 않은 오류를 모아 봅니다. 대기 요청에는 경과 시간이 표시되며, 오래 기다린 요청부터 확인할 수 있습니다. 완료 결과를 상세 창에서 읽거나 **확인 완료**를 누르면 미확인 목록에서 빠집니다. 새 결과나 요청이 생기면 다시 표시됩니다.
+
+#### 작업 창으로 이동
+
+목록이나 상세 화면의 **작업 창으로 이동**을 누르면 해당 세션을 실행한 앱으로 돌아갑니다. Terminal·iTerm2는 연결된 창·탭을 찾고, tmux는 연결 정보가 있을 때 pane을 선택합니다. 다른 앱은 프로젝트에 해당하는 창을 찾아 엽니다. 창을 구분할 수 없으면 앱을 열어 주므로 작업 창을 직접 선택하세요.
+
+창 이동에 필요한 경우 macOS가 **자동화** 또는 **접근성** 권한을 요청합니다. 권한이 없어도 프로젝트 폴더 열기와 재개 명령 복사를 사용할 수 있습니다.
+
+#### Codex 세션 종료
+
+상세 화면의 **Codex 종료…** 또는 목록의 우클릭 메뉴로 선택한 세션을 종료합니다. 확인창에서 대상 프로젝트를 확인하면 해당 Codex가 닫히고 **대화 기록은 남습니다**. 다시 작업하려면 복사한 재개 명령을 실행하세요.
 
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_한국어.png" alt="sessionbar 세션 상세: 최신 응답, 작업 활동과 프로젝트 열기" width="850">
@@ -143,11 +155,11 @@ cd sessionbar
 | Finding sessions waiting for approval or input | Use the **Attention** filter and enable notifications for attention estimates. |
 | Checking Codex results while working on something else | Open a session to read its **latest reply and recent activity**. |
 | Looking up earlier work | Browse **completed and failed tasks by date**, or export a chosen period to CSV. |
-| Returning to a project | **Open its folder or copy the session ID or resume command**. |
+| Returning to a project | Use **Go to window**, open the project folder, or copy the resume command. |
 
 ### 1. See your sessions together
 
-Each session shows its project, request summary, status, last activity, and available terminal information. Search for a project or choose **Open sessions · All · Attention**.
+Each session shows its project, request summary, status, last activity, and available terminal information. Search for a project or choose **Open sessions · All · Attention · Unreviewed**.
 
 **Attention** shows attention estimates and errors in currently open sessions. Past sessions remain available in **All**.
 
@@ -171,7 +183,19 @@ The menu icon changes when a session may need attention. Estimated states are la
 
 Select a session to open its **latest Codex reply and recent activity**. Resize the window to read the result, open the project folder, or copy its resume command.
 
-Quit an open session with **Quit Codex…** in its detail window or the list's right-click menu. Confirm the session to close Codex and keep its conversation history. Use the resume command to continue later.
+#### Review pending work
+
+**Unreviewed** collects approval and input requests, unread completed results, and unreviewed errors. Requests show elapsed waiting time, with older requests first. Read a completed result in its detail window or select **Mark reviewed** to clear it from the queue. New results and requests appear again.
+
+#### Return to the task window
+
+Select **Go to window** in the list or detail window to return to the app that opened the session. Terminal and iTerm2 locate the connected window and tab; tmux selects its pane when connection information is available. Other apps locate a matching project window. If the window cannot be distinguished, the app opens so you can select the task window.
+
+macOS may request **Automation** or **Accessibility** permission for window navigation. Opening the project folder and copying the resume command remain available without those permissions.
+
+#### Quit a Codex session
+
+Select **Quit Codex…** in the detail window or the list's right-click menu. Check the project in the confirmation dialog to close the selected Codex. **Conversation history is kept.** Run the copied resume command to continue later.
 
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_영문.png" alt="sessionbar session details with the latest reply, recent activity, and project actions" width="850">

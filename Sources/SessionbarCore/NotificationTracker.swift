@@ -10,6 +10,13 @@ public struct NotificationPreferences: Sendable {
     public var pauseUntil: Date?
     public var cooldownMinutes = 10
     public init() {}
+
+    public func allowsDelivery(at now: Date, calendar: Calendar = .current) -> Bool {
+        if let until = pauseUntil, until > now { return false }
+        guard quietHours else { return true }
+        let hour = calendar.component(.hour, from: now)
+        return quietStart != quietEnd && !(quietStart < quietEnd ? hour >= quietStart && hour < quietEnd : hour >= quietStart || hour < quietEnd)
+    }
 }
 
 public struct NotificationTracker {
@@ -17,6 +24,7 @@ public struct NotificationTracker {
     private var pending: [String: SessionRecord] = [:]
     private var lastDelivered: [String: Date] = [:]
     private var initialized = false
+    private var startedAt: Date?
     public init() {}
 
     public mutating func resetAttention() {
@@ -26,15 +34,19 @@ public struct NotificationTracker {
     public mutating func observe(_ records: [SessionRecord], preferences: NotificationPreferences,
                                  now: Date = .now, calendar: Calendar = .current) -> [SessionRecord] {
         let activeIDs = Set(records.map(\.id))
+        if startedAt == nil { startedAt = now }
         pending = pending.filter { activeIDs.contains($0.key) }
         for record in records {
-            let key = "\(record.state.rawValue):\(record.stateRecordedAt.timeIntervalSince1970)"
-            if record.state == .needsAttentionEstimate {
+            let key = record.eventToken
+            if record.isRuntimeStale { continue }
+            if record.state == .needsAttentionEstimate && record.runtime != nil {
                 if observed[record.id] != key && preferences.attention { pending[record.id] = record }
-            } else if initialized && observed[record.id] != key && isEnabled(record.state, preferences) {
+            } else if initialized && observed[record.id] != key && isEnabled(record.state, preferences) &&
+                        record.stateRecordedAt > (startedAt ?? now) {
                 if record.state == .completed || record.state == .error { pending[record.id] = record }
             }
-            if let waiting = pending[record.id], waiting.state == .needsAttentionEstimate && record.state != .needsAttentionEstimate {
+            if let waiting = pending[record.id], waiting.eventToken != key ||
+                (waiting.state == .needsAttentionEstimate && record.runtime == nil) {
                 pending.removeValue(forKey: record.id)
             }
             observed[record.id] = key
@@ -42,15 +54,11 @@ public struct NotificationTracker {
         initialized = true
         observed = observed.filter { activeIDs.contains($0.key) }
         lastDelivered = lastDelivered.filter { now.timeIntervalSince($0.value) < 86_400 }
-        if let until = preferences.pauseUntil, until > now { return [] }
-        if preferences.quietHours {
-            let hour = calendar.component(.hour, from: now)
-            let start = preferences.quietStart, end = preferences.quietEnd
-            let quiet = start == end || (start < end ? hour >= start && hour < end : hour >= start || hour < end)
-            if quiet { return [] }
-        }
+        guard preferences.allowsDelivery(at: now, calendar: calendar) else { return [] }
         var result: [SessionRecord] = []
+        let staleIDs = Set(records.filter { $0.isRuntimeStale }.map(\.id))
         for (id, record) in pending {
+            guard !staleIDs.contains(id) else { continue }
             guard isEnabled(record.state, preferences) else { pending.removeValue(forKey: id); continue }
             let cooldownKey = id + record.state.rawValue
             guard now.timeIntervalSince(lastDelivered[cooldownKey] ?? .distantPast) >= Double(preferences.cooldownMinutes) * 60 else { continue }
@@ -59,6 +67,12 @@ public struct NotificationTracker {
             pending.removeValue(forKey: id)
         }
         return result
+    }
+
+    public mutating func deliveryFailed(_ record: SessionRecord) {
+        guard observed[record.id] == record.eventToken else { return }
+        pending[record.id] = record
+        lastDelivered.removeValue(forKey: record.id + record.state.rawValue)
     }
 
     private func isEnabled(_ state: SessionState, _ preferences: NotificationPreferences) -> Bool {

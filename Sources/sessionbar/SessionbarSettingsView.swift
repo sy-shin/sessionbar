@@ -33,7 +33,8 @@ struct SessionbarSettingsView: View {
         }
         .frame(width: 540, height: 520)
         .sessionTheme()
-        .onAppear { settings.refreshLoginStatus() }
+        .onAppear { settings.refreshLoginStatus(); store.refreshNotificationPermission() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in store.refreshNotificationPermission() }
     }
 
     private var generalSettings: some View {
@@ -69,6 +70,16 @@ struct SessionbarSettingsView: View {
     private var notificationSettings: some View {
         Form {
             Section {
+                HStack {
+                    Text(L10n.text(settings.notificationPermission.label))
+                    Spacer()
+                    if settings.notificationPermission == .notRequested {
+                        Button(L10n.text("알림 허용 요청")) { store.requestNotificationPermission() }
+                    } else {
+                        Button(L10n.text("macOS 알림 설정")) { store.openNotificationSettings() }
+                    }
+                }
+                if settings.notificationBannersDisabled { Text(L10n.text("알림 표시 꺼짐")).font(.caption) }
                 Toggle(L10n.text("확인 필요 추정 알림"), isOn: $settings.attentionNotifications)
                 Toggle(L10n.text("작업 완료 알림"), isOn: $settings.completionNotifications)
                 Toggle(L10n.text("오류 알림"), isOn: $settings.errorNotifications)

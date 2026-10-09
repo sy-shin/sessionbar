@@ -8,7 +8,6 @@ struct SessionDetailView: View {
     @State private var detail: SessionDetail?
     @State private var loading = true
     @State private var actionError: String?
-    @State private var returning = false
 
     var body: some View {
         let session = store.record(id: sessionID)
@@ -58,12 +57,7 @@ struct SessionDetailView: View {
                 }
                 Divider()
                 HStack {
-                    if TerminalConnector.canReturn(session.runtime) {
-                        Button(L10n.text("터미널로 돌아가기")) {
-                            returning = true
-                            Task { actionError = await store.returnToSession(id: sessionID); returning = false }
-                        }.disabled(returning)
-                    }
+                    if SessionWindowConnector.canReturn(session.runtime) { SessionReturnButton(store: store, session: session) }
                     Button(L10n.text("프로젝트 폴더 열기")) {
                         if !session.projectPath.isEmpty {
                             if !NSWorkspace.shared.open(URL(fileURLWithPath: session.projectPath, isDirectory: true)) {
@@ -82,14 +76,25 @@ struct SessionDetailView: View {
                         .help(L10n.text("새로고침")).accessibilityLabel(L10n.text("상세 새로고침"))
                 }
                 if let actionError { Text(L10n.text(actionError)).font(.caption).foregroundStyle(.red) }
+                if let review = store.unreviewed[sessionID] {
+                    Button(L10n.text("확인 완료")) { store.markReviewed(id: sessionID, token: review.token) }
+                }
             } else { ContentUnavailableView(L10n.text("세션을 찾을 수 없습니다"), systemImage: "doc.badge.questionmark") }
         }
         .padding(24).frame(minWidth: 600, minHeight: 460)
         .sessionTheme()
         .task(id: session?.lastActivity) { await reload() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            if store.isDetailVisible(id: sessionID) { Task { await reload() } }
+        }
     }
 
-    private func reload() async { detail = await store.detail(id: sessionID); loading = false }
+    private func reload() async {
+        let review = store.unreviewed[sessionID]
+        detail = await store.detail(id: sessionID); loading = false
+        if let review, review.kind == .completed, detail?.completedResponseToken == review.token,
+           store.isDetailVisible(id: sessionID) { store.markReviewed(id: sessionID, token: review.token) }
+    }
     private func copy(_ value: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(value, forType: .string) }
     private func shellQuoted(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
 }

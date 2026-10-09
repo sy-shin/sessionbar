@@ -1,13 +1,26 @@
 import Foundation
+import AppKit
 import SessionbarCore
 
 struct ProcessSnapshot: Sendable {
     let byFile: [URL: SessionRuntime]
     let codexCount: Int
     let available: Bool
+
+    func recovering(_ previous: [URL: SessionRuntime], matches: (SessionRuntime) -> Bool) -> ProcessSnapshot {
+        available ? self : ProcessSnapshot(byFile: previous.filter { matches($0.value) }, codexCount: codexCount, available: false)
+    }
 }
 
 actor ProcessObserver {
+    private var lastKnownFiles: [URL: SessionRuntime] = [:]
+
+    private func unavailable(count: Int) -> ProcessSnapshot {
+        ProcessSnapshot(byFile: [:], codexCount: count, available: false).recovering(lastKnownFiles) { runtime in
+            guard let start = runtime.processStartTime else { return false }
+            return SessionProcessController.startTime(of: runtime.processID) == start
+        }
+    }
     private struct Entry {
         let id: Int32
         let parent: Int32
@@ -18,7 +31,7 @@ actor ProcessObserver {
 
     func scan() -> ProcessSnapshot {
         let ps = CommandRunner.run("/bin/ps", ["-axo", "pid=,ppid=,tty=,comm="])
-        guard ps.status == 0 else { return ProcessSnapshot(byFile: [:], codexCount: 0, available: false) }
+        guard ps.status == 0 else { return unavailable(count: 0) }
         var processes: [Int32: Entry] = [:]
         for line in ps.output.split(whereSeparator: \.isNewline) {
             let fields = line.split(maxSplits: 3, omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
@@ -29,11 +42,11 @@ actor ProcessObserver {
             processes[id] = Entry(id: id, parent: parent, tty: tty, command: command, startTime: startTime)
         }
         let codex = processes.values.filter { URL(fileURLWithPath: $0.command).lastPathComponent == "codex" }
-        guard !codex.isEmpty else { return ProcessSnapshot(byFile: [:], codexCount: 0, available: true) }
+        guard !codex.isEmpty else { lastKnownFiles = [:]; return ProcessSnapshot(byFile: [:], codexCount: 0, available: true) }
         let ids = codex.map { String($0.id) }.joined(separator: ",")
         let files = CommandRunner.run("/usr/sbin/lsof", ["-a", "-p", ids, "-n", "-P", "-F", "pftn"], timeout: 5)
         guard !files.timedOut, files.status == 0 || files.status == 1 else {
-            return ProcessSnapshot(byFile: [:], codexCount: codex.count, available: false)
+            return unavailable(count: codex.count)
         }
         var currentPID: Int32?
         var descriptor = "", fileType = ""
@@ -62,18 +75,24 @@ actor ProcessObserver {
             var parent = entry.parent
             var terminalName: String?
             var bundleID: String?
+            var originAppPID: Int32?
             var seen = Set<Int32>()
             while let ancestor = processes[parent], seen.insert(parent).inserted {
                 let name = URL(fileURLWithPath: ancestor.command).lastPathComponent
+                if let app = NSRunningApplication(processIdentifier: parent), app.activationPolicy == .regular {
+                    terminalName = app.localizedName ?? name
+                    bundleID = app.bundleIdentifier; originAppPID = parent
+                    break
+                }
                 switch name {
-                case "Terminal": terminalName = "Terminal"; bundleID = "com.apple.Terminal"
-                case "iTerm2": terminalName = "iTerm2"; bundleID = "com.googlecode.iterm2"
+                case "Terminal": terminalName = "Terminal"; bundleID = "com.apple.Terminal"; originAppPID = parent
+                case "iTerm2": terminalName = "iTerm2"; bundleID = "com.googlecode.iterm2"; originAppPID = parent
                 case "ghostty": terminalName = "Ghostty"
                 case "wezterm-gui": terminalName = "WezTerm"
                 case "Code", "Code Helper", "Code Helper (Plugin)": terminalName = "VS Code"
                 default: break
                 }
-                if terminalName != nil { break }
+                if originAppPID != nil { break }
                 parent = ancestor.parent
             }
             let pane = tty.flatMap { panes[$0] }
@@ -83,8 +102,11 @@ actor ProcessObserver {
                     var visited = Set<Int32>()
                     while let ancestor = processes[parentID], visited.insert(parentID).inserted {
                         let name = URL(fileURLWithPath: ancestor.command).lastPathComponent
-                        if name == "Terminal" { bundleID = "com.apple.Terminal"; break }
-                        if name == "iTerm2" { bundleID = "com.googlecode.iterm2"; break }
+                        if let app = NSRunningApplication(processIdentifier: parentID), app.activationPolicy == .regular {
+                            bundleID = app.bundleIdentifier; originAppPID = parentID; break
+                        }
+                        if name == "Terminal" { bundleID = "com.apple.Terminal"; originAppPID = parentID; break }
+                        if name == "iTerm2" { bundleID = "com.googlecode.iterm2"; originAppPID = parentID; break }
                         parentID = ancestor.parent
                     }
                     if bundleID != nil { break }
@@ -92,9 +114,10 @@ actor ProcessObserver {
             }
             let runtime = SessionRuntime(processID: pid, tty: tty, terminalName: pane == nil ? terminalName : "tmux",
                                          terminalBundleID: bundleID, tmuxPane: pane?.pane,
-                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime)
+                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime, originAppProcessID: originAppPID)
             if result[url]?.tty == nil || runtime.tty != nil { result[url] = runtime }
         }
+        lastKnownFiles = result
         return ProcessSnapshot(byFile: result, codexCount: codex.count, available: true)
     }
 

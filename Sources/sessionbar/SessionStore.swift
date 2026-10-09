@@ -15,6 +15,8 @@ final class SessionStore: ObservableObject {
     @Published private(set) var activeSessionCount = 0
     @Published private(set) var folderError: String?
     @Published private(set) var terminatingSessionIDs = Set<String>()
+    @Published private(set) var unreviewed: [String: SessionReviewEvent] = [:]
+    @Published private(set) var processObservationAvailable = true
     private let folderAccess = SessionFolderAccess()
     private var suggestedSessionFolder: URL?
     @Published private(set) var invalidFileCount = 0
@@ -24,6 +26,7 @@ final class SessionStore: ObservableObject {
     private let processController = SessionProcessController()
     private let monitor = FileChangeMonitor()
     private let notifications: NotificationService
+    private let reviews = SessionReviewStore()
     private var placeholderIDs: [URL: String] = [:]
     private var allRecords: [String: SessionRecord] = [:]
     private var sessionURLs: [String: URL] = [:]
@@ -41,6 +44,7 @@ final class SessionStore: ObservableObject {
         settings.onChange = { [weak self] in self?.configure() }
         settings.onEnableNotifications = { [weak self] state in self?.notifications.requestPermission(for: state) }
         notifications.onOpenSession = { [weak self] in self?.openDetail(sessionID: $0) }
+        notifications.onPermissionGranted = { [weak self] in self?.refresh() }
         configure()
         Task { await folderAccess.restore(); await repository.retryAfterFolderConnection(); refresh() }
     }
@@ -78,9 +82,11 @@ final class SessionStore: ObservableObject {
             let now = Date()
             let inventory = SessionInventory(snapshots: result.snapshots, runtime: runtime, now: now, placeholderIDs: &placeholderIDs)
             activeSessionCount = inventory.activeCount
+            processObservationAvailable = runtime.available
             suggestedSessionFolder = runtime.byFile.keys.sorted(by: { $0.path < $1.path }).first.flatMap(Self.sessionRoot)
             allRecords = inventory.records
             sessionURLs = inventory.urls
+            reviews.observe(Array(allRecords.values))
             let cutoff = now.addingTimeInterval(-Double(settings.retentionDays) * 86_400)
             sessions = allRecords.values.filter {
                 settings.retentionDays == 0 || $0.runtime != nil ||
@@ -89,6 +95,7 @@ final class SessionStore: ObservableObject {
                 let first = priority($0.state), second = priority($1.state)
                 return first == second ? $0.lastActivity > $1.lastActivity : first < second
             }
+            updateReviews()
             notifications.observe(Array(allRecords.values), now: now)
             processCount = runtime.codexCount
             invalidFileCount = result.invalidFiles
@@ -110,6 +117,18 @@ final class SessionStore: ObservableObject {
     }
 
     func record(id: String) -> SessionRecord? { allRecords[id] }
+
+    private func updateReviews() {
+        unreviewed = Dictionary(uniqueKeysWithValues: sessions.compactMap { record in
+            reviews.pending(id: record.id).map { (record.id, $0) }
+        })
+    }
+
+    func markReviewed(id: String, token: String) { reviews.markReviewed(id: id, token: token); updateReviews() }
+    func isDetailVisible(id: String) -> Bool { windows[id]?.isKeyWindow == true && NSApp.isActive }
+    func refreshNotificationPermission() { notifications.refreshPermission() }
+    func requestNotificationPermission() { notifications.requestPermission() }
+    func openNotificationSettings() { notifications.openSystemSettings() }
 
     func terminateSession(_ session: SessionRecord) async -> String? {
         guard let runtime = session.runtime, let url = sessionURLs[session.id] else {
@@ -151,15 +170,11 @@ final class SessionStore: ObservableObject {
         showWindow(id: "diagnostics", title: L10n.text("진단"), width: 660, height: 420, view: DiagnosticsView(store: self))
     }
 
-    func returnToSession(id: String) async -> String? {
-        guard let url = sessionURLs[id] else { return L10n.text("세션 기록을 찾을 수 없습니다") }
+    func returnToSession(id: String) async -> WindowReturnResult {
+        guard let url = sessionURLs[id], let record = allRecords[id] else { return .failed("세션 기록을 찾을 수 없습니다") }
         let snapshot = await processObserver.scan()
-        guard let runtime = snapshot.byFile[url] else { refresh(); return L10n.text("실행 중인 세션을 찾을 수 없습니다") }
-        let error = await TerminalConnector.focus(runtime)
-        if let error {
-            diagnostics.append(error + " · " + String(TerminalConnector.lastErrorCode ?? 0) + " / " + String(TerminalConnector.lastResultCode ?? 0))
-        }
-        return error
+        guard snapshot.available, let runtime = snapshot.byFile[url] else { refresh(); return .failed("실행 중인 세션을 찾을 수 없습니다") }
+        return await SessionWindowConnector.focus(runtime, projectPath: record.projectPath)
     }
 
     private func showWindow<V: View>(id: String, title: String, width: CGFloat, height: CGFloat, view: V) {

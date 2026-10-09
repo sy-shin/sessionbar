@@ -3,6 +3,19 @@ import Combine
 import ServiceManagement
 import SessionbarCore
 
+enum NotificationPermission {
+    case checking, notRequested, allowed, denied, unavailable
+    var label: String {
+        switch self {
+        case .checking: return "알림 권한 확인 중"
+        case .notRequested: return "알림 권한 미요청"
+        case .allowed: return "알림 허용됨"
+        case .denied: return "알림 차단됨"
+        case .unavailable: return "알림 권한 확인 불가"
+        }
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     @Published var language: AppLanguage { didSet { persist() } }
@@ -30,6 +43,8 @@ final class AppSettings: ObservableObject {
     @Published private(set) var loginNeedsApproval = false
     @Published private(set) var loginError: String?
     @Published var notificationError: String?
+    @Published var notificationPermission = NotificationPermission.checking
+    @Published var notificationBannersDisabled = false
     var onChange: (() -> Void)?
     var onEnableNotifications: ((SessionState) -> Void)?
     private let defaults: UserDefaults

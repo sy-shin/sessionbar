@@ -82,3 +82,34 @@ struct IncrementalReaderTests {
         #expect(reader.read() == nil)
     }
 }
+
+extension IncrementalReaderTests {
+    @Test func approvalPolicyAndDelayAvoidImmediateFalseAttention() {
+        var snapshot = SessionSnapshot()
+        snapshot.id = "fixture"; snapshot.phase = .working; snapshot.lastActivity = now
+        snapshot.pendingCalls["approval"] = .init(kind: .approval, date: now)
+        let runtime = SessionRuntime(processID: 42)
+        #expect(snapshot.record(now: now.addingTimeInterval(2), runtime: runtime)?.state == .runningEstimate)
+        #expect(snapshot.record(now: now.addingTimeInterval(3), runtime: runtime)?.state == .needsAttentionEstimate)
+        snapshot.approvalPolicy = "never"
+        #expect(snapshot.record(now: now.addingTimeInterval(10), runtime: runtime)?.state == .runningEstimate)
+        snapshot.pendingCalls["input"] = .init(kind: .input, date: now.addingTimeInterval(1))
+        snapshot.pendingCalls["later"] = .init(kind: .input, date: now.addingTimeInterval(2))
+        #expect(snapshot.record(now: now.addingTimeInterval(10), runtime: runtime)?.stateRecordedAt == now.addingTimeInterval(1))
+    }
+
+    @Test func completedResponseMustBelongToTheCurrentTurn() {
+        var snapshot = SessionSnapshot(); snapshot.id = "fixture"
+        func event(_ type: String, at seconds: Int) -> [String: Any] {
+            ["type": "event_msg", "timestamp": "2026-10-08T10:00:\(String(format: "%02d", seconds))Z", "payload": ["type": type]]
+        }
+        snapshot.consume(event("task_started", at: 1))
+        snapshot.consume(["type": "response_item", "timestamp": "2026-10-08T10:00:02Z", "payload": ["type": "message", "role": "assistant", "phase": "final_answer", "content": [["type": "output_text", "text": "Fixture response"]]]])
+        snapshot.consume(event("task_complete", at: 3))
+        #expect(snapshot.detail.completedResponseToken == snapshot.record(now: now)?.eventToken)
+        snapshot.consume(event("task_started", at: 4))
+        snapshot.consume(event("task_complete", at: 5))
+        #expect(snapshot.detail.latestResponse == "Fixture response")
+        #expect(snapshot.detail.completedResponseToken == nil)
+    }
+}

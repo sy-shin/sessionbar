@@ -3,6 +3,7 @@ import Foundation
 public struct SessionSnapshot: Sendable {
     enum Phase: Sendable { case working, complete, failed, aborted, unknown }
     enum Pending: Sendable { case input, approval }
+    struct PendingRequest: Sendable { let kind: Pending; let date: Date }
     var id: String?
     var cwd = ""
     var title: String?
@@ -11,13 +12,17 @@ public struct SessionSnapshot: Sendable {
     var lastActivity = Date.distantPast
     var stateRecordedAt = Date.distantPast
     var phase: Phase = .unknown
-    var pendingCalls: [String: Pending] = [:]
+    var pendingCalls: [String: PendingRequest] = [:]
+    var approvalPolicy: String?
     var latestResponse: String?
+    var latestResponseDate: Date?
+    var turnStartedAt: Date?
+    var completedResponseToken: String?
     var activities: [SessionActivity] = []
     public internal(set) var malformedLines = 0
 
     public var detail: SessionDetail {
-        SessionDetail(latestResponse: latestResponse, activities: Array(activities.suffix(40).reversed()))
+        SessionDetail(latestResponse: latestResponse, activities: Array(activities.suffix(40).reversed()), completedResponseToken: completedResponseToken)
     }
 
     public func record(now: Date = .now, runtime: SessionRuntime? = nil,
@@ -25,6 +30,9 @@ public struct SessionSnapshot: Sendable {
         guard let id else { return nil }
         let state: SessionState
         let evidence: String
+        var recordedAt = stateRecordedAt
+        let input = pendingCalls.values.filter { $0.kind == .input }.min { $0.date < $1.date }
+        let approval = pendingCalls.values.filter { $0.kind == .approval }.min { $0.date < $1.date }
         switch phase {
         case .complete:
             state = .completed; evidence = "작업 완료 기록"
@@ -34,10 +42,12 @@ public struct SessionSnapshot: Sendable {
             state = runtime == nil && processObservationAvailable ? .unknown : .idleEstimate
             evidence = runtime == nil && processObservationAvailable ? "작업 중단 · 실행 프로세스 미확인" : "작업 중단 기록"
         case .working, .unknown:
-            if let _ = runtime, pendingCalls.values.contains(.input) {
+            if let _ = runtime, let input {
                 state = .needsAttentionEstimate; evidence = "응답이 기록되지 않은 사용자 입력 요청"
-            } else if let _ = runtime, pendingCalls.values.contains(.approval) {
+                recordedAt = input.date
+            } else if let _ = runtime, let approval, approvalPolicy != "never", now.timeIntervalSince(approval.date) >= 3 {
                 state = .needsAttentionEstimate; evidence = "결과가 기록되지 않은 권한 요청"
+                recordedAt = approval.date
             } else if runtime == nil && processObservationAvailable {
                 state = .unknown; evidence = "실행 프로세스 미확인"
             } else if phase == .working && now.timeIntervalSince(lastActivity) <= 120 {
@@ -49,7 +59,7 @@ public struct SessionSnapshot: Sendable {
             }
         }
         return SessionRecord(id: id, projectPath: cwd, title: title ?? fallbackTitle ?? "제목 없음", lastActivity: lastActivity,
-                             state: state, source: source, evidence: evidence, runtime: runtime, stateRecordedAt: stateRecordedAt)
+                             state: state, source: source, evidence: evidence, runtime: runtime, stateRecordedAt: recordedAt)
     }
 
     mutating func consume(_ record: [String: Any], metadataOnly: Bool = false) {
@@ -60,6 +70,7 @@ public struct SessionSnapshot: Sendable {
             cwd = payload["cwd"] as? String ?? ""
             source = payload["source"] as? String ?? payload["originator"] as? String
         }
+        if type == "turn_context" { approvalPolicy = payload["approval_policy"] as? String }
         if type == "event_msg", payload["type"] as? String == "user_message", title == nil,
            let message = payload["message"] as? String {
             title = String(message.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
@@ -74,13 +85,16 @@ public struct SessionSnapshot: Sendable {
         let kind = payload["type"] as? String ?? ""
         if type == "event_msg" {
             switch kind {
-            case "task_started": phase = .working; pendingCalls.removeAll(); stateRecordedAt = date
+            case "task_started": phase = .working; pendingCalls.removeAll(); stateRecordedAt = date; turnStartedAt = date; completedResponseToken = nil
             case "task_complete":
                 phase = payload["error"] as? [String: Any] == nil ? .complete : .failed
                 stateRecordedAt = date
                 pendingCalls.removeAll()
+                if phase == .complete, let start = turnStartedAt, let responseDate = latestResponseDate, responseDate >= start, responseDate <= date {
+                    completedResponseToken = "\(SessionState.completed.rawValue):\(date.timeIntervalSince1970)"
+                } else { completedResponseToken = nil }
             case "turn_aborted": phase = .aborted; pendingCalls.removeAll(); stateRecordedAt = date
-            case "user_message": phase = .unknown; pendingCalls.removeAll()
+            case "user_message": phase = .unknown; pendingCalls.removeAll(); turnStartedAt = date
             default: break
             }
             if let activity = Self.activity(payload: payload, date: date) {
@@ -92,12 +106,12 @@ public struct SessionSnapshot: Sendable {
             if kind == "function_call" || kind == "custom_tool_call" {
                 if let callID = payload["call_id"] as? String {
                     let name = (payload["name"] as? String ?? "").split(separator: ".").last.map(String.init)
-                    if name == "request_user_input" { pendingCalls[callID] = .input; stateRecordedAt = date }
+                    if name == "request_user_input" { pendingCalls[callID] = PendingRequest(kind: .input, date: date); stateRecordedAt = date }
                     else if let arguments = payload["arguments"] as? String,
                             let data = arguments.data(using: .utf8),
                             let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                             object["sandbox_permissions"] as? String == "require_escalated" {
-                        pendingCalls[callID] = .approval
+                        pendingCalls[callID] = PendingRequest(kind: .approval, date: date)
                         stateRecordedAt = date
                     }
                 }
@@ -108,7 +122,7 @@ public struct SessionSnapshot: Sendable {
                       let content = payload["content"] as? [[String: Any]] {
                 let text = content.filter { $0["type"] as? String == "output_text" }
                     .compactMap { $0["text"] as? String }.joined(separator: "\n\n")
-                if !text.isEmpty { latestResponse = text }
+                if !text.isEmpty { latestResponse = text; latestResponseDate = date }
             }
         }
     }

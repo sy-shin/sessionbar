@@ -33,6 +33,7 @@ public enum SessionState: String, CaseIterable, Sendable {
 public struct SessionRuntime: Equatable, Sendable {
     public let processID: Int32
     public let processStartTime: UInt64?
+    public let originAppProcessID: Int32?
     public let tty: String?
     public let terminalName: String?
     public let terminalBundleID: String?
@@ -45,9 +46,10 @@ public struct SessionRuntime: Equatable, Sendable {
     public init(processID: Int32, tty: String? = nil, terminalName: String? = nil,
                 terminalBundleID: String? = nil, tmuxPane: String? = nil,
                 tmuxSession: String? = nil, tmuxWindow: String? = nil, tmuxClientTTY: String? = nil, workingDirectory: String? = nil,
-                processStartTime: UInt64? = nil) {
+                processStartTime: UInt64? = nil, originAppProcessID: Int32? = nil) {
         self.processID = processID
         self.processStartTime = processStartTime
+        self.originAppProcessID = originAppProcessID
         self.tty = tty
         self.terminalName = terminalName
         self.terminalBundleID = terminalBundleID
@@ -70,9 +72,10 @@ public struct SessionRecord: Identifiable, Equatable, Sendable {
     public let runtime: SessionRuntime?
     public let stateRecordedAt: Date
     public let isPlaceholder: Bool
+    public let isRuntimeStale: Bool
 
     public init(id: String, projectPath: String, title: String, lastActivity: Date,
-                state: SessionState, source: String?, evidence: String = "", runtime: SessionRuntime? = nil, stateRecordedAt: Date? = nil, isPlaceholder: Bool = false) {
+                state: SessionState, source: String?, evidence: String = "", runtime: SessionRuntime? = nil, stateRecordedAt: Date? = nil, isPlaceholder: Bool = false, isRuntimeStale: Bool = false) {
         self.id = id
         self.projectPath = projectPath
         self.title = title
@@ -83,7 +86,10 @@ public struct SessionRecord: Identifiable, Equatable, Sendable {
         self.runtime = runtime
         self.stateRecordedAt = stateRecordedAt ?? lastActivity
         self.isPlaceholder = isPlaceholder
+        self.isRuntimeStale = isRuntimeStale
     }
+
+    public var eventToken: String { "\(state.rawValue):\(stateRecordedAt.timeIntervalSince1970)" }
 
     public var projectName: String { URL(fileURLWithPath: projectPath).lastPathComponent }
 }
@@ -106,10 +112,12 @@ public struct SessionActivity: Identifiable, Equatable, Sendable {
 public struct SessionDetail: Equatable, Sendable {
     public let latestResponse: String?
     public let activities: [SessionActivity]
+    public let completedResponseToken: String?
 
-    public init(latestResponse: String?, activities: [SessionActivity]) {
+    public init(latestResponse: String?, activities: [SessionActivity], completedResponseToken: String? = nil) {
         self.latestResponse = latestResponse
         self.activities = activities
+        self.completedResponseToken = completedResponseToken
     }
 }
 

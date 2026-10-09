@@ -36,6 +36,33 @@ enum L10n {
         return text(activity.label)
     }
     static let english: [String: String] = [
+        "미확인": "Unreviewed",
+        "미확인 요청": "Unreviewed request",
+        "미확인 결과": "Unread result",
+        "미확인 오류": "Unreviewed error",
+        "확인 완료": "Mark reviewed",
+        "확인할 작업이 없습니다": "Nothing to review",
+        "미확인 %d · %@": "Unreviewed %d · %@",
+        "실행 중~ %d · 활성 ?": "Running~ %d · Active ?",
+        "실행 중~ %d · 활성~ %d": "Running~ %d · Active~ %d",
+        "프로세스 상태를 확인할 수 없습니다": "Process status unavailable",
+        "작업 창으로 이동": "Go to window",
+        "앱으로 이동": "Go to app",
+        "접근성 설정 열기": "Open accessibility settings",
+        "창 이동에 접근성 권한이 필요합니다": "Accessibility permission required to select the window",
+        "앱을 열었습니다. 작업 창을 선택해 주세요": "App opened. Select the task window",
+        "세션을 연 앱을 찾을 수 없습니다": "Could not find the app that opened the session",
+        "앱 창으로 이동할 수 없습니다": "Could not switch to the app window",
+        "알림 권한 확인 중": "Checking notification permission",
+        "알림 권한 미요청": "Notification permission not requested",
+        "알림 허용됨": "Notifications allowed",
+        "알림 차단됨": "Notifications blocked",
+        "알림 권한 확인 불가": "Notification permission unavailable",
+        "알림 표시 꺼짐": "Notification alerts disabled",
+        "알림 허용 요청": "Allow notifications",
+        "macOS 알림 설정": "macOS notification settings",
+        "알림 권한을 요청할 수 없습니다": "Could not request notification permission",
+        "알림 설정을 열 수 없습니다": "Could not open notification settings",
         "Codex 종료…": "Quit Codex…",
         "Codex 종료": "Quit Codex",
         "Codex 세션을 종료할까요?": "Quit this Codex session?",
@@ -205,5 +232,15 @@ struct LocalizedRoot<Content: View>: View {
     let content: Content
     var body: some View {
         content.id(language).environment(\.locale, (AppLanguage(rawValue: language) ?? .system).locale)
+    }
+}
+
+extension SessionReviewEvent.Kind {
+    var localizedLabel: String {
+        switch self {
+        case .attention: return L10n.text("미확인 요청")
+        case .completed: return L10n.text("미확인 결과")
+        case .error: return L10n.text("미확인 오류")
+        }
     }
 }
