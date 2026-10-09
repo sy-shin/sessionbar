@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 struct CommandResult: Sendable {
     let status: Int32
@@ -7,10 +8,6 @@ struct CommandResult: Sendable {
 }
 
 enum CommandRunner {
-    private final class Buffer: @unchecked Sendable {
-        var data = Data()
-    }
-
     /// Called only from worker actors/queues. Output stays in memory and is never logged.
     static func run(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3) -> CommandResult {
         let process = Process()
@@ -19,21 +16,41 @@ enum CommandRunner {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
-        let ended = DispatchSemaphore(value: 0)
-        process.terminationHandler = { _ in ended.signal() }
-        do { try process.run() } catch { return CommandResult(status: -1, output: "", timedOut: false) }
-        let buffer = Buffer()
-        let reader = DispatchGroup()
-        reader.enter()
-        DispatchQueue.global(qos: .utility).async {
-            buffer.data = pipe.fileHandleForReading.readDataToEndOfFile()
-            reader.leave()
+        let descriptor = pipe.fileHandleForReading.fileDescriptor
+        let flags = fcntl(descriptor, F_GETFL)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0 else {
+            return CommandResult(status: -1, output: "", timedOut: false)
         }
-        let timedOut = ended.wait(timeout: .now() + timeout) == .timedOut
-        if timedOut { process.terminate() }
-        if timedOut && ended.wait(timeout: .now() + 1) == .timedOut { kill(process.processIdentifier, SIGKILL) }
-        reader.wait()
-        process.waitUntilExit()
-        return CommandResult(status: process.terminationStatus, output: String(decoding: buffer.data, as: UTF8.self), timedOut: timedOut)
+        do { try process.run() } catch { return CommandResult(status: -1, output: "", timedOut: false) }
+        try? pipe.fileHandleForWriting.close()
+        defer { try? pipe.fileHandleForReading.close() }
+        let deadline = ProcessInfo.processInfo.systemUptime + max(0, timeout)
+        var output = Data(), bytes = [UInt8](repeating: 0, count: 65_536)
+        var timedOut = false, killed = false, invalidOutput = false
+        while true {
+            let count = bytes.withUnsafeMutableBytes { Darwin.read(descriptor, $0.baseAddress, $0.count) }
+            if count > 0 {
+                if output.count + count <= 16 * 1024 * 1024 { output.append(contentsOf: bytes.prefix(count)) }
+                else { invalidOutput = true }
+            } else if count < 0 && errno != EAGAIN && errno != EINTR {
+                invalidOutput = true
+            }
+            // Drain buffered bytes after exit without waiting for descendants to close the pipe.
+            if !process.isRunning && count <= 0 { break }
+            let now = ProcessInfo.processInfo.systemUptime
+            if process.isRunning && now >= deadline && !timedOut {
+                timedOut = true
+                process.terminate()
+            }
+            if process.isRunning && now >= deadline + 1 && !killed {
+                killed = true
+                Darwin.kill(process.processIdentifier, SIGKILL)
+            }
+            if now >= deadline + 2 { timedOut = true; break }
+            if count <= 0 { usleep(10_000) }
+        }
+        // Avoid scheduling a pipe reader on the cooperative pool and then blocking that pool.
+        let status: Int32 = process.isRunning || invalidOutput ? -1 : process.terminationStatus
+        return CommandResult(status: status, output: String(decoding: output, as: UTF8.self), timedOut: timedOut)
     }
 }
