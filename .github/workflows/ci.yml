@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run tests
-        run: ./scripts/swift.sh test
+        run: python3 scripts/ci-test.py
       - name: Build Universal app and packages
         run: ./scripts/package-release.sh v0.2.0-beta.2
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
