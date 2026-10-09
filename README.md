@@ -104,7 +104,7 @@ cd sessionbar
 | 기록 보관 | 완료·유휴 세션 **30일** · 기간 변경 또는 모두 표시 |
 | 알림 | 확인 필요 추정 알림 기본 켜짐 · 완료·오류 알림 개별 선택 |
 | 알림 조절 | 알림음 · 조용한 시간대 · 1시간 일시 중지 · 같은 세션의 반복 간격 |
-| 앱 실행 | 로그인 시 실행 선택 가능 |
+| 앱 실행 | Mac 시작 시 자동 실행 선택 가능 |
 
 <details>
 <summary>빌드 옵션과 테스트</summary>
@@ -211,7 +211,7 @@ The app installs to `~/Applications/sessionbar.app`.
 | Retention | Completed and idle sessions kept for **30 days** · Choose a period or keep all |
 | Notifications | Attention estimates enabled by default · Optional completion and error notifications |
 | Notification controls | Sound · Quiet hours · Pause for 1 hour · Repeat interval per session |
-| Launch | Optional launch at login |
+| Launch | Optional automatic startup on your Mac |
 
 <details>
 <summary>Build options and tests</summary>

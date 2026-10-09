@@ -47,9 +47,9 @@ struct SessionbarSettingsView: View {
                 Text(L10n.text("크림")).tag(false)
                 Text(L10n.text("시스템")).tag(true)
             }
-            Toggle(L10n.text("로그인 시 실행"), isOn: Binding(get: { settings.launchAtLogin }, set: settings.setLaunchAtLogin))
+            Toggle(L10n.text("Mac 시작 시 자동 실행"), isOn: Binding(get: { settings.launchAtLogin }, set: settings.setLaunchAtLogin))
             if settings.loginNeedsApproval {
-                Button(L10n.text("로그인 항목 승인")) { SMAppService.openSystemSettingsLoginItems() }
+                Button(L10n.text("자동 실행 설정 열기")) { SMAppService.openSystemSettingsLoginItems() }
             }
             if let error = settings.loginError { Text(L10n.text(error)).foregroundStyle(.red).font(.caption) }
             Toggle(L10n.text("간단한 메뉴 표시"), isOn: $settings.compactMenu)

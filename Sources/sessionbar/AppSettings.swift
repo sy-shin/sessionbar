@@ -85,7 +85,7 @@ final class AppSettings: ObservableObject {
             if enabled { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
             loginError = nil
-        } catch { loginError = "로그인 시 실행 설정을 변경할 수 없습니다" }
+        } catch { loginError = "자동 실행 설정을 변경할 수 없습니다" }
         refreshLoginStatus()
     }
 }
