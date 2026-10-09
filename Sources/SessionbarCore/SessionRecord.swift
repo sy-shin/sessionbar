@@ -39,10 +39,11 @@ public struct SessionRuntime: Equatable, Sendable {
     public let tmuxSession: String?
     public let tmuxWindow: String?
     public let tmuxClientTTY: String?
+    public let workingDirectory: String?
 
     public init(processID: Int32, tty: String? = nil, terminalName: String? = nil,
                 terminalBundleID: String? = nil, tmuxPane: String? = nil,
-                tmuxSession: String? = nil, tmuxWindow: String? = nil, tmuxClientTTY: String? = nil) {
+                tmuxSession: String? = nil, tmuxWindow: String? = nil, tmuxClientTTY: String? = nil, workingDirectory: String? = nil) {
         self.processID = processID
         self.tty = tty
         self.terminalName = terminalName
@@ -51,6 +52,7 @@ public struct SessionRuntime: Equatable, Sendable {
         self.tmuxSession = tmuxSession
         self.tmuxWindow = tmuxWindow
         self.tmuxClientTTY = tmuxClientTTY
+        self.workingDirectory = workingDirectory
     }
 }
 
@@ -64,9 +66,10 @@ public struct SessionRecord: Identifiable, Equatable, Sendable {
     public let evidence: String
     public let runtime: SessionRuntime?
     public let stateRecordedAt: Date
+    public let isPlaceholder: Bool
 
     public init(id: String, projectPath: String, title: String, lastActivity: Date,
-                state: SessionState, source: String?, evidence: String = "", runtime: SessionRuntime? = nil, stateRecordedAt: Date? = nil) {
+                state: SessionState, source: String?, evidence: String = "", runtime: SessionRuntime? = nil, stateRecordedAt: Date? = nil, isPlaceholder: Bool = false) {
         self.id = id
         self.projectPath = projectPath
         self.title = title
@@ -76,6 +79,7 @@ public struct SessionRecord: Identifiable, Equatable, Sendable {
         self.evidence = evidence
         self.runtime = runtime
         self.stateRecordedAt = stateRecordedAt ?? lastActivity
+        self.isPlaceholder = isPlaceholder
     }
 
     public var projectName: String { URL(fileURLWithPath: projectPath).lastPathComponent }

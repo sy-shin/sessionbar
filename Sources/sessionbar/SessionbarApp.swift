@@ -15,14 +15,14 @@ struct SessionbarApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            SessionListView(store: store, settings: store.settings)
+            LocalizedRoot(content: SessionListView(store: store, settings: store.settings))
                 .frame(width: 430, height: 570)
         } label: {
-            SessionMenuLabel(store: store, settings: store.settings)
+            LocalizedRoot(content: SessionMenuLabel(store: store, settings: store.settings))
         }
         .menuBarExtraStyle(.window)
 
-        Settings { SessionbarSettingsView(store: store, settings: store.settings) }
+        Settings { LocalizedRoot(content: SessionbarSettingsView(store: store, settings: store.settings)) }
     }
 }
 
@@ -31,20 +31,15 @@ private struct SessionMenuLabel: View {
     @ObservedObject var settings: AppSettings
 
     var body: some View {
-        let attention = store.sessions.filter { $0.state == .needsAttentionEstimate }.count
-        let running = store.sessions.filter { $0.state == .runningEstimate }.count
-        let errors = store.sessions.filter { $0.state == .error }.count
+        let summary = SessionMenuSummary(records: store.sessions, activeCount: store.activeSessionCount)
+        let attention = summary.attention, running = summary.running, errors = summary.errors
         HStack(spacing: 4) {
             Image(systemName: attention > 0 ? "exclamationmark.bubble.fill" : errors > 0 ? "exclamationmark.triangle.fill" : "terminal")
                 .foregroundStyle(attention > 0 ? Color.orange : errors > 0 ? Color.red : Color.primary)
-            if !settings.compactMenu {
-                if attention > 0 { Text("확인? \(attention) · 실행? \(running)") }
-                else if running > 0 { Text("실행? \(running)") }
-                else if store.sessions.isEmpty { Text("세션 없음") }
-                else { Text("세션 \(store.sessions.count)") }
-            } else if attention > 0 { Text("\(attention)") }
+            Text(summary.title(compact: settings.compactMenu)).monospacedDigit()
         }
-        .accessibilityLabel("확인 필요 추정 \(attention)개, 실행 추정 \(running)개")
+        .accessibilityLabel(L10n.format("실행 추정 %d개, 활성 세션 %d개, 확인 필요 추정 %d개", running, store.activeSessionCount, attention))
+        .help(L10n.format("실행 추정 %d개, 활성 세션 %d개, 확인 필요 추정 %d개", running, store.activeSessionCount, attention))
     }
 }
 
@@ -74,11 +69,11 @@ struct SessionListView: View {
                 Text("sessionbar").font(.system(size: 22, weight: .semibold)).tracking(-0.7)
                 Spacer()
                 Button { store.openHistory() } label: { Image(systemName: "clock.arrow.circlepath") }
-                    .help("활동 기록").accessibilityLabel("활동 기록")
+                    .help(L10n.text("활동 기록")).accessibilityLabel(L10n.text("활동 기록"))
                 Button(action: store.refresh) { Image(systemName: "arrow.clockwise") }
-                    .disabled(store.isRefreshing).help("새로고침").accessibilityLabel("새로고침")
+                    .disabled(store.isRefreshing).help(L10n.text("새로고침")).accessibilityLabel(L10n.text("새로고침"))
                 Button { NSApp.activate(ignoringOtherApps: true); openSettings() } label: { Image(systemName: "gearshape") }
-                    .help("설정").accessibilityLabel("설정")
+                    .help(L10n.text("설정")).accessibilityLabel(L10n.text("설정"))
             }
             .buttonStyle(SessionIconButtonStyle())
             .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 16)
@@ -92,8 +87,8 @@ struct SessionListView: View {
                     }
                     .padding(.horizontal, 9).padding(.vertical, 7)
                     .background(count > 0 ? state.color.opacity(0.08) : SessionTheme.surface, in: Capsule())
-                    .help("\(state.koreanLabel) \(count)개")
-                    .accessibilityLabel("\(state.koreanLabel) \(count)개")
+                    .help(L10n.format("%@ %d개", state.localizedLabel, count))
+                    .accessibilityLabel(L10n.format("%@ %d개", state.localizedLabel, count))
                 }
             }
             .font(.system(size: 12, weight: .medium))
@@ -102,19 +97,19 @@ struct SessionListView: View {
 
             VStack(spacing: 10) {
                 HStack(spacing: 4) {
-                    ForEach(Array(["열린 세션", "전체", "주의 필요"].enumerated()), id: \.offset) { index, title in
+                    ForEach(Array([L10n.text("열린 세션"), L10n.text("전체"), L10n.text("주의 필요")].enumerated()), id: \.offset) { index, title in
                         Button { filter = index } label: {
                             Text(title).font(.system(size: 12, weight: filter == index ? .semibold : .medium))
                                 .foregroundStyle(filter == index ? SessionTheme.ink : SessionTheme.muted)
                                 .frame(maxWidth: .infinity).padding(.vertical, 8)
                                 .background(filter == index ? SessionTheme.surface : .clear,
                                             in: RoundedRectangle(cornerRadius: 8))
-                        }.buttonStyle(.plain).accessibilityValue(filter == index ? "선택됨" : "")
+                        }.buttonStyle(.plain).accessibilityValue(filter == index ? L10n.text("선택됨") : "")
                     }
                 }.padding(4).background(SessionTheme.inset, in: RoundedRectangle(cornerRadius: 11))
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass").foregroundStyle(SessionTheme.muted)
-                    TextField("프로젝트 또는 세션 검색", text: $search).textFieldStyle(.plain)
+                    TextField(L10n.text("프로젝트 또는 세션 검색"), text: $search).textFieldStyle(.plain)
                 }.padding(11).sessionCard(radius: 10)
             }.padding(.horizontal, 20).padding(.bottom, 14)
 
@@ -122,11 +117,11 @@ struct SessionListView: View {
             if store.isRefreshing && store.lastRefresh == nil {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let diagnostic = store.diagnostic {
-                ContentUnavailableView(diagnostic, systemImage: "folder.badge.questionmark")
+                ContentUnavailableView(L10n.text(diagnostic), systemImage: "folder.badge.questionmark")
             } else if visibleSessions.isEmpty {
                 VStack(spacing: 12) {
-                    ContentUnavailableView(filter == 0 ? "열린 세션이 없습니다" : "표시할 세션이 없습니다", systemImage: "terminal")
-                    if filter == 0 && !store.sessions.isEmpty { Button("세션 기록 보기") { filter = 1 }.padding(.bottom, 28) }
+                    ContentUnavailableView(filter == 0 ? L10n.text("열린 세션이 없습니다") : L10n.text("표시할 세션이 없습니다"), systemImage: "terminal")
+                    if filter == 0 && !store.sessions.isEmpty { Button(L10n.text("세션 기록 보기")) { filter = 1 }.padding(.bottom, 28) }
                 }.frame(maxHeight: .infinity)
             } else {
                 ScrollView {
@@ -142,22 +137,26 @@ struct SessionListView: View {
                     }.padding(16)
                 }
             }
+            if store.sessions.contains(where: \.isPlaceholder) {
+                Button(L10n.text("세션 폴더 연결…")) { store.connectSessionFolder() }.padding(10)
+                if let error = store.folderError { Text(error).font(.caption).foregroundStyle(.red) }
+            }
             Divider()
             HStack {
                 if store.isRefreshing { ProgressView().controlSize(.small) }
                 else if let date = store.lastRefresh {
-                    Text("갱신 \(date.formatted(date: .omitted, time: .shortened))")
+                    Text(L10n.format("갱신 %@", L10n.date(date, dateStyle: .none)))
                         .foregroundStyle(SessionTheme.muted)
                 }
                 Spacer()
                 if let until = settings.pauseUntil, until > Date() {
                     Button { settings.resumeNotifications() } label: { Image(systemName: "bell.slash.fill") }
-                        .help("알림 다시 켜기").accessibilityLabel("알림 다시 켜기")
+                        .help(L10n.text("알림 다시 켜기")).accessibilityLabel(L10n.text("알림 다시 켜기"))
                 } else {
                     Button { settings.pauseForHour() } label: { Image(systemName: "bell") }
-                        .help("알림 1시간 일시 중지").accessibilityLabel("알림 1시간 일시 중지")
+                        .help(L10n.text("알림 1시간 일시 중지")).accessibilityLabel(L10n.text("알림 1시간 일시 중지"))
                 }
-                Button("종료") { NSApp.terminate(nil) }
+                Button(L10n.text("종료")) { NSApp.terminate(nil) }
             }
             .font(.caption).buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 12)
         }
@@ -175,25 +174,29 @@ private struct SessionRow: View {
                 .background(session.state.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 7) {
                 HStack {
-                    Text(session.projectName.isEmpty ? "프로젝트 없음" : session.projectName)
+                    Text(session.projectName.isEmpty ? L10n.text("프로젝트 없음") : session.projectName)
                         .font(.headline).lineLimit(1)
                     Spacer()
                     SessionStatusBadge(state: session.state)
                 }
-                Text(session.title).font(.system(size: 12)).lineSpacing(3).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
+                Text(session.isPlaceholder ? L10n.text(session.title) : session.title).font(.system(size: 12)).lineSpacing(3).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 Text(session.projectPath).font(.caption2).foregroundStyle(SessionTheme.muted).lineLimit(1)
                 HStack {
                     if let terminal = session.runtime?.terminalName { Text(terminal) }
                     else if session.source != nil { Text("Codex") }
                     Spacer()
-                    Text(session.lastActivity, style: .relative)
+                    if session.isPlaceholder { Text(L10n.text("마지막 활동 불명")) }
+                    else { Text(session.lastActivity, style: .relative) }
                 }.font(.caption2).foregroundStyle(SessionTheme.muted)
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(session.projectName), \(session.state.koreanLabel), \(session.title), 마지막 활동 \(session.lastActivity.formatted())")
-        .accessibilityHint(session.evidence)
-        .help("\(session.evidence) · 마지막 활동 \(session.lastActivity.formatted())")
+        .accessibilityLabel([session.projectName, session.state.localizedLabel, L10n.text(session.title), activityTime].joined(separator: ", "))
+        .accessibilityHint(L10n.text(session.evidence))
+        .help(L10n.text(session.evidence) + " · " + activityTime)
+    }
+    private var activityTime: String {
+        session.isPlaceholder ? L10n.text("마지막 활동 불명") : L10n.format("마지막 활동 %@", L10n.date(session.lastActivity))
     }
 }
 

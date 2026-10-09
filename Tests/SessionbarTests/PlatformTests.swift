@@ -46,6 +46,83 @@ import AppKit
         #expect(try Data(contentsOf: file) == data)
     }
 
+    @Test func blockedActiveReadDoesNotEmptyOtherSessionsAndRecovers() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-delay-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let slow = root.appending(path: "slow.jsonl"), fast = root.appending(path: "fast.jsonl")
+        let slowData = Data((#"{"type":"session_meta","payload":{"id":"slow","cwd":"/tmp/slow"}}"# + "\n").utf8)
+        try slowData.write(to: slow)
+        try Data((#"{"type":"session_meta","payload":{"id":"fast","cwd":"/tmp/fast"}}"# + "\n").utf8).write(to: fast)
+        let gate = DispatchSemaphore(value: 0)
+        let repository = SessionRepository(beforeRead: { url in if url == slow { gate.wait() } })
+        let began = Date()
+        let result = await repository.scan(directories: [], activeFiles: [slow, fast])
+        #expect(Date().timeIntervalSince(began) < 2)
+        #expect(result.snapshots[fast] != nil)
+        #expect(result.pendingFiles.contains(slow))
+        gate.signal()
+        let recovered = await repository.scan(directories: [], activeFiles: [slow, fast])
+        #expect(recovered.snapshots.count == 2)
+        #expect(recovered.pendingFiles.isEmpty)
+        #expect(try Data(contentsOf: slow) == slowData)
+    }
+
+    @Test func missingAndCorruptActiveFilesDoNotRemoveValidSession() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-invalid-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let corrupt = root.appending(path: "corrupt.jsonl"), valid = root.appending(path: "valid.jsonl")
+        try Data("invalid\n".utf8).write(to: corrupt)
+        try Data((#"{"type":"session_meta","payload":{"id":"valid","cwd":"/tmp/project"}}"# + "\n").utf8).write(to: valid)
+        let repository = SessionRepository()
+        let result = await repository.scan(directories: [], activeFiles: [valid, corrupt, root.appending(path: "missing.jsonl")])
+        #expect(result.snapshots.count == 1)
+        #expect(result.invalidFiles == 2)
+    }
+
+    @Test func translationsCoverStatesAndPreserveUserRequestText() {
+        for state in SessionState.allCases {
+            #expect(L10n.text(state.koreanLabel, language: .korean) == state.koreanLabel)
+            #expect(L10n.text(state.koreanLabel, language: .english) != state.koreanLabel)
+        }
+        #expect(L10n.text("세션 폴더 연결…", language: .english) == "Connect session folder…")
+        #expect(L10n.text("프로젝트 또는 세션 검색", language: .english) == "Search projects or sessions")
+        #expect(L10n.text("실행 중~ %d · 활성 %d", language: .english) == "Running~ %d · Active %d")
+        #expect(L10n.text("arbitrary user prompt", language: .korean) == "arbitrary user prompt")
+        #expect(AppLanguage.korean.locale.identifier.hasPrefix("ko"))
+        #expect(AppLanguage.english.locale.identifier.hasPrefix("en"))
+    }
+
+    @Test func activeCountsIncludeIdleAndUnreadableButDeduplicateSessionIDs() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-count-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let first = root.appending(path: "first.jsonl"), duplicate = root.appending(path: "duplicate.jsonl"), done = root.appending(path: "done.jsonl")
+        let running = #"{"type":"session_meta","payload":{"id":"running","cwd":"/tmp/project"},"timestamp":"2026-10-08T10:00:00Z"}"# + "\n" + #"{"type":"event_msg","payload":{"type":"task_started"},"timestamp":"2026-10-08T10:00:00Z"}"# + "\n"
+        try Data(running.utf8).write(to: first); try Data(running.utf8).write(to: duplicate)
+        try Data((#"{"type":"session_meta","payload":{"id":"done","cwd":"/tmp/project"},"timestamp":"2026-10-08T10:00:00Z"}"# + "\n" + #"{"type":"event_msg","payload":{"type":"task_complete"},"timestamp":"2026-10-08T10:00:00Z"}"# + "\n").utf8).write(to: done)
+        var snapshots: [URL: SessionSnapshot] = [:]
+        for file in [first, duplicate, done] { var reader = IncrementalSessionReader(url: file); let snapshot = reader.read(); snapshots[file] = snapshot }
+        let unreadable = root.appending(path: "unreadable.jsonl")
+        let runtime = ProcessSnapshot(byFile: [first: SessionRuntime(processID: 1), duplicate: SessionRuntime(processID: 2), done: SessionRuntime(processID: 3), unreadable: SessionRuntime(processID: 4)], codexCount: 8, available: true)
+        var ids: [URL: String] = [:]
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-10-08T10:00:30Z"))
+        let inventory = SessionInventory(snapshots: snapshots, runtime: runtime, now: now, placeholderIDs: &ids)
+        #expect(inventory.records.count == 3)
+        #expect(inventory.activeCount == 3)
+        #expect(inventory.records.values.filter(\.isPlaceholder).count == 1)
+        #expect(inventory.records.values.filter(\.isPlaceholder).first?.state == .unknown)
+        let summary = SessionMenuSummary(records: Array(inventory.records.values), activeCount: inventory.activeCount)
+        #expect(summary.running == 1)
+        #expect(summary.title(compact: false, language: .korean) == "실행 중~ 1 · 활성 3")
+        #expect(summary.title(compact: false, language: .english) == "Running~ 1 · Active 3")
+        #expect(summary.title(compact: true) == "1/3")
+        let later = SessionInventory(snapshots: snapshots, runtime: runtime, now: now.addingTimeInterval(300), placeholderIDs: &ids)
+        #expect(SessionMenuSummary(records: Array(later.records.values), activeCount: later.activeCount).running == 0)
+        #expect(later.activeCount == 3)
+    }
+
     @MainActor @Test func fileChangeMonitorObservesUpdates() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-watch-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -60,6 +137,38 @@ import AppKit
         #expect(changed)
     }
 
+    @MainActor @Test func folderConnectionsPersistReadOnlyBookmarksAndCanBeRemoved() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-folder-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let suite = "sessionbar-folder-test-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let access = SessionFolderAccess(defaults: defaults)
+        try access.connect(root)
+        #expect((defaults.dictionary(forKey: "sessionbar.folderBookmarks") as? [String: Data])?[root.path] != nil)
+        await access.restore()
+        access.disconnect(path: root.path)
+        #expect(defaults.dictionary(forKey: "sessionbar.folderBookmarks")?.isEmpty == true)
+    }
+
+    @Test func archiveLargerThanWorkerLimitIsEventuallyRead() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sessionbar-archive-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        for index in 0..<70 {
+            let line = "{\"type\":\"session_meta\",\"payload\":{\"id\":\"fixture-\(index)\",\"cwd\":\"/tmp/project\"}}\n"
+            try Data(line.utf8).write(to: root.appending(path: "fixture-\(index).jsonl"))
+        }
+        let repository = SessionRepository()
+        var count = 0
+        for _ in 0..<5 {
+            count = await repository.scan(directories: [root.path]).snapshots.count
+            if count == 70 { break }
+        }
+        #expect(count == 70)
+    }
+
     @MainActor @Test func settingsDefaultsAndChangesPersistInIsolatedPreferences() throws {
         let name = "sessionbar-test-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
@@ -69,10 +178,11 @@ import AppKit
         #expect(settings.refreshInterval == 15)
         #expect(settings.attentionNotifications)
         #expect(!settings.completionNotifications)
-        settings.retentionDays = 7; settings.watchFiles = false
+        settings.retentionDays = 7; settings.watchFiles = false; settings.language = .english
         let reloaded = AppSettings(defaults: defaults)
         #expect(reloaded.retentionDays == 7)
         #expect(!reloaded.watchFiles)
+        #expect(reloaded.language == .english)
     }
 
     @MainActor @Test func terminalScriptsCompileAgainstInstalledDictionaries() {

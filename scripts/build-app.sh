@@ -11,6 +11,7 @@ cp "$sessionbar_root/Packaging/Info.plist" "$sessionbar_app/Contents/Info.plist"
 if [[ -d "$sessionbar_root/Packaging/AppIcon.iconset" ]]; then
     iconutil -c icns "$sessionbar_root/Packaging/AppIcon.iconset" -o "$sessionbar_app/Contents/Resources/AppIcon.icns"
 fi
+ditto "$sessionbar_root/Packaging/Resources" "$sessionbar_app/Contents/Resources"
 codesign --force --sign - "$sessionbar_app"
 if [[ "${1:-}" == "--install" ]]; then
     sessionbar_install="$HOME/Applications/sessionbar.app"

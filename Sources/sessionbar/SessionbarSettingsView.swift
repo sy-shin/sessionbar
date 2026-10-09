@@ -12,14 +12,14 @@ struct SessionbarSettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
-                ForEach(Array([("일반", "gearshape"), ("알림", "bell"), ("폴더", "folder")].enumerated()), id: \.offset) { index, item in
+                ForEach(Array([(L10n.text("일반"), "gearshape"), (L10n.text("알림"), "bell"), (L10n.text("폴더"), "folder")].enumerated()), id: \.offset) { index, item in
                     Button { selectedTab = index } label: {
                         Label(item.0, systemImage: item.1)
                             .font(.system(size: 13, weight: .medium))
                             .frame(maxWidth: .infinity).padding(.vertical, 11)
                             .background(selectedTab == index ? SessionTheme.surface : .clear,
                                         in: RoundedRectangle(cornerRadius: 10))
-                    }.buttonStyle(.plain).accessibilityValue(selectedTab == index ? "선택됨" : "")
+                    }.buttonStyle(.plain).accessibilityValue(selectedTab == index ? L10n.text("선택됨") : "")
                 }
             }.padding(4).background(SessionTheme.inset, in: RoundedRectangle(cornerRadius: 14))
                 .padding(.horizontal, 24).padding(.top, 20)
@@ -38,24 +38,29 @@ struct SessionbarSettingsView: View {
 
     private var generalSettings: some View {
         Form {
-            Picker("화면 테마", selection: $followSystemAppearance) {
-                Text("크림").tag(false)
-                Text("시스템").tag(true)
+            Picker(L10n.text("언어"), selection: $settings.language) {
+                Text(L10n.text("시스템")).tag(AppLanguage.system)
+                Text("한국어").tag(AppLanguage.korean)
+                Text("English").tag(AppLanguage.english)
             }
-            Toggle("로그인 시 실행", isOn: Binding(get: { settings.launchAtLogin }, set: settings.setLaunchAtLogin))
+            Picker(L10n.text("화면 테마"), selection: $followSystemAppearance) {
+                Text(L10n.text("크림")).tag(false)
+                Text(L10n.text("시스템")).tag(true)
+            }
+            Toggle(L10n.text("로그인 시 실행"), isOn: Binding(get: { settings.launchAtLogin }, set: settings.setLaunchAtLogin))
             if settings.loginNeedsApproval {
-                Button("로그인 항목 승인") { SMAppService.openSystemSettingsLoginItems() }
+                Button(L10n.text("로그인 항목 승인")) { SMAppService.openSystemSettingsLoginItems() }
             }
-            if let error = settings.loginError { Text(error).foregroundStyle(.red).font(.caption) }
-            Toggle("메뉴 막대에 아이콘만 표시", isOn: $settings.compactMenu)
-            Toggle("파일 변경 시 새로고침", isOn: $settings.watchFiles)
-            Picker("완료·유휴 세션 보관 기간", selection: $settings.retentionDays) {
-                Text("7일").tag(7); Text("30일").tag(30); Text("90일").tag(90); Text("모두 표시").tag(0)
+            if let error = settings.loginError { Text(L10n.text(error)).foregroundStyle(.red).font(.caption) }
+            Toggle(L10n.text("간단한 메뉴 표시"), isOn: $settings.compactMenu)
+            Toggle(L10n.text("파일 변경 시 새로고침"), isOn: $settings.watchFiles)
+            Picker(L10n.text("완료·유휴 세션 보관 기간"), selection: $settings.retentionDays) {
+                Text(L10n.text("7일")).tag(7); Text(L10n.text("30일")).tag(30); Text(L10n.text("90일")).tag(90); Text(L10n.text("모두 표시")).tag(0)
             }
-            Picker("자동 새로고침", selection: $settings.refreshInterval) {
-                Text("5초").tag(5); Text("15초").tag(15); Text("30초").tag(30); Text("60초").tag(60)
+            Picker(L10n.text("자동 새로고침"), selection: $settings.refreshInterval) {
+                Text(L10n.text("5초")).tag(5); Text(L10n.text("15초")).tag(15); Text(L10n.text("30초")).tag(30); Text(L10n.text("60초")).tag(60)
             }
-            Button("진단 보기") { store.openDiagnostics() }
+            Button(L10n.text("진단 보기")) { store.openDiagnostics() }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -64,25 +69,25 @@ struct SessionbarSettingsView: View {
     private var notificationSettings: some View {
         Form {
             Section {
-                Toggle("확인 필요 추정 알림", isOn: $settings.attentionNotifications)
-                Toggle("작업 완료 알림", isOn: $settings.completionNotifications)
-                Toggle("오류 알림", isOn: $settings.errorNotifications)
-                Toggle("알림음", isOn: $settings.sound)
-                Picker("같은 세션의 알림 간격", selection: $settings.cooldownMinutes) {
-                    Text("1분").tag(1); Text("5분").tag(5); Text("10분").tag(10); Text("30분").tag(30)
+                Toggle(L10n.text("확인 필요 추정 알림"), isOn: $settings.attentionNotifications)
+                Toggle(L10n.text("작업 완료 알림"), isOn: $settings.completionNotifications)
+                Toggle(L10n.text("오류 알림"), isOn: $settings.errorNotifications)
+                Toggle(L10n.text("알림음"), isOn: $settings.sound)
+                Picker(L10n.text("같은 세션의 알림 간격"), selection: $settings.cooldownMinutes) {
+                    Text(L10n.text("1분")).tag(1); Text(L10n.text("5분")).tag(5); Text(L10n.text("10분")).tag(10); Text(L10n.text("30분")).tag(30)
                 }
-                if let error = settings.notificationError { Text(error).font(.caption).foregroundStyle(.red) }
+                if let error = settings.notificationError { Text(L10n.text(error)).font(.caption).foregroundStyle(.red) }
             }
             Section {
-                Toggle("조용한 시간대", isOn: $settings.quietHours)
+                Toggle(L10n.text("조용한 시간대"), isOn: $settings.quietHours)
                 HStack {
-                    Text("시작"); hourPicker($settings.quietStart)
-                    Text("종료"); hourPicker($settings.quietEnd)
+                    Text(L10n.text("시작")); hourPicker($settings.quietStart)
+                    Text(L10n.language.locale.identifier.hasPrefix("ko") ? "종료" : "End"); hourPicker($settings.quietEnd)
                 }.disabled(!settings.quietHours)
                 if let date = settings.pauseUntil, date > Date() {
-                    Text("일시 중지 · \(date.formatted(date: .omitted, time: .shortened))까지")
-                    Button("알림 다시 켜기") { settings.resumeNotifications() }
-                } else { Button("알림 1시간 일시 중지") { settings.pauseForHour() } }
+                    Text(L10n.format("일시 중지 · %@까지", L10n.date(date, dateStyle: .none)))
+                    Button(L10n.text("알림 다시 켜기")) { settings.resumeNotifications() }
+                } else { Button(L10n.text("알림 1시간 일시 중지")) { settings.pauseForHour() } }
             }
         }
         .formStyle(.grouped)
@@ -91,42 +96,32 @@ struct SessionbarSettingsView: View {
 
     private var folderSettings: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("세션 폴더").font(.headline)
+            Text(L10n.text("세션 폴더")).font(.headline)
             List {
                 ForEach(settings.sessionDirectories, id: \.self) { directory in
                     HStack {
                         Text(directory).font(.caption).textSelection(.enabled)
                         Spacer()
-                        Button { settings.sessionDirectories.removeAll { $0 == directory } } label: { Image(systemName: "minus.circle") }
-                            .buttonStyle(.borderless).help("폴더 제외")
+                        Button { store.disconnectSessionFolder(directory) } label: { Image(systemName: "minus.circle") }
+                            .buttonStyle(.borderless).help(L10n.text("폴더 제외"))
                     }
                 }
             }.scrollContentBackground(.hidden).sessionCard()
             HStack {
-                Button("폴더 추가…") { addDirectories() }
-                Button("기본 폴더") {
+                Button(L10n.text("폴더 추가…")) { store.connectSessionFolder() }
+                Button(L10n.text("기본 폴더")) {
                     let directory = FileManager.default.homeDirectoryForCurrentUser.appending(path: ".codex/sessions").path
                     if !settings.sessionDirectories.contains(directory) { settings.sessionDirectories.append(directory) }
                 }
             }
+            if let error = store.folderError { Text(L10n.text(error)).font(.caption).foregroundStyle(.red) }
         }.padding(20)
     }
 
     private func hourPicker(_ binding: Binding<Int>) -> some View {
-        Picker("시각", selection: binding) {
+        Picker(L10n.text("시각"), selection: binding) {
             ForEach(0..<24, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
         }.labelsHidden().frame(width: 100)
     }
 
-    private func addDirectories() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.allowsMultipleSelection = true
-        panel.prompt = "추가"; panel.message = "세션 폴더 선택"
-        guard panel.runModal() == .OK else { return }
-        for url in panel.urls {
-            let child = url.appending(path: "sessions")
-            let selected = FileManager.default.fileExists(atPath: child.path) ? child.path : url.path
-            if !settings.sessionDirectories.contains(selected) { settings.sessionDirectories.append(selected) }
-        }
-    }
 }

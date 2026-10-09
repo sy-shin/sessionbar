@@ -13,14 +13,14 @@ struct SessionHistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("활동 기록").font(.title2.weight(.semibold))
+                Text(L10n.text("활동 기록")).font(.title2.weight(.semibold))
                 Spacer()
-                DatePicker("날짜", selection: $date, displayedComponents: .date).frame(width: 240)
-                Button("CSV 내보내기…") { showingExport = true }
+                DatePicker(L10n.text("날짜"), selection: $date, displayedComponents: .date).frame(width: 240)
+                Button(L10n.text("CSV 내보내기…")) { showingExport = true }
             }
             Divider()
             if loading { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
-            else if items.isEmpty { ContentUnavailableView("이 날짜의 완료 기록이 없습니다", systemImage: "calendar") }
+            else if items.isEmpty { ContentUnavailableView(L10n.text("이 날짜의 완료 기록이 없습니다"), systemImage: "calendar") }
             else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
@@ -29,21 +29,21 @@ struct SessionHistoryView: View {
                                 Text(item.date, style: .time).font(.caption.monospacedDigit()).foregroundStyle(SessionTheme.muted).frame(width: 76)
                                 Image(systemName: item.state.symbol).foregroundStyle(item.state.color)
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text(item.projectName.isEmpty ? "프로젝트 없음" : item.projectName).font(.headline)
+                                    Text(item.projectName.isEmpty ? L10n.text("프로젝트 없음") : item.projectName).font(.headline)
                                     Text(item.title).font(.subheadline).lineLimit(2)
                                 }
                                 Spacer()
                                 SessionStatusBadge(state: item.state)
-                                Button("세션 보기") { store.openDetail(sessionID: item.sessionID) }
+                                Button(L10n.text("세션 보기")) { store.openDetail(sessionID: item.sessionID) }
                             }.padding(16).sessionCard()
                         }
                     }
                 }
             }
             HStack {
-                Text("\(items.count)개 작업").font(.caption).foregroundStyle(SessionTheme.muted)
+                Text(L10n.format("%d개 작업", items.count)).font(.caption).foregroundStyle(SessionTheme.muted)
                 Spacer()
-                Button("새로고침") { Task { await load() } }
+                Button(L10n.text("새로고침")) { Task { await load() } }
             }
         }
         .padding(24).frame(minWidth: 650, minHeight: 420)
@@ -78,19 +78,19 @@ private struct HistoryExportView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("활동 기록 내보내기").font(.title3.weight(.semibold))
-            DatePicker("시작 날짜", selection: $start, displayedComponents: .date)
-            DatePicker("종료 날짜", selection: $end, in: start..., displayedComponents: .date)
-            Text("완료·오류 기록 · 시각, 프로젝트명, 상태").font(.callout)
-            Toggle("프로젝트 경로 포함", isOn: $options.includeProjectPath)
-            Toggle("세션 ID 포함", isOn: $options.includeSessionID)
-            Toggle("요청 요약 포함", isOn: $options.includeTitle)
+            Text(L10n.text("활동 기록 내보내기")).font(.title3.weight(.semibold))
+            DatePicker(L10n.text("시작 날짜"), selection: $start, displayedComponents: .date)
+            DatePicker(L10n.text("종료 날짜"), selection: $end, in: start..., displayedComponents: .date)
+            Text(L10n.text("완료·오류 기록 · 시각, 프로젝트명, 상태")).font(.callout)
+            Toggle(L10n.text("프로젝트 경로 포함"), isOn: $options.includeProjectPath)
+            Toggle(L10n.text("세션 ID 포함"), isOn: $options.includeSessionID)
+            Toggle(L10n.text("요청 요약 포함"), isOn: $options.includeTitle)
             if let error { Text(error).foregroundStyle(.red).font(.caption) }
             HStack {
-                Button("취소") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L10n.text("취소")) { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 if loading { ProgressView().controlSize(.small) }
-                Button("저장 위치 선택…") { Task { await save() } }
+                Button(L10n.text("저장 위치 선택…")) { Task { await save() } }
                     .disabled(loading || end < start).keyboardShortcut(.defaultAction)
             }
         }.padding(24).frame(width: 420).sessionTheme()
@@ -102,13 +102,13 @@ private struct HistoryExportView: View {
         let last = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: end)) ?? end
         let items = await store.history(from: first, to: last)
         let panel = NSSavePanel()
-        panel.title = "활동 기록 저장"; panel.nameFieldStringValue = "000_활동기록.csv"
+        panel.title = L10n.text("활동 기록 저장"); panel.nameFieldStringValue = "000_활동기록.csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.canCreateDirectories = true
-        panel.message = "\(first.formatted(date: .numeric, time: .omitted)) ~ \(end.formatted(date: .numeric, time: .omitted)) · \(items.count)개 작업"
+        panel.message = L10n.date(first, timeStyle: .none) + " ~ " + L10n.date(end, timeStyle: .none) + " · " + L10n.format("%d개 작업", items.count)
         if panel.runModal() == .OK, let url = panel.url {
             do { try HistoryCSV.data(items: items, options: options).write(to: url, options: .atomic); dismiss() }
-            catch { self.error = "파일을 저장할 수 없습니다" }
+            catch { self.error = L10n.text("파일을 저장할 수 없습니다") }
         }
         loading = false
     }

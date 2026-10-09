@@ -15,7 +15,7 @@ enum TerminalConnector {
     static func focus(_ runtime: SessionRuntime) async -> String? {
         lastErrorCode = nil
         lastResultCode = nil
-        guard canReturn(runtime) else { return "터미널 위치를 확인할 수 없습니다" }
+        guard canReturn(runtime) else { return L10n.text("터미널 위치를 확인할 수 없습니다") }
         if let pane = runtime.tmuxPane, let session = runtime.tmuxSession, let window = runtime.tmuxWindow,
            let client = runtime.tmuxClientTTY, let executable = ProcessObserver.tmuxExecutable {
             let ok = await Task.detached(priority: .userInitiated) {
@@ -24,17 +24,17 @@ enum TerminalConnector {
                 let third = CommandRunner.run(executable, ["switch-client", "-c", client, "-t", session])
                 return first.status == 0 && second.status == 0 && third.status == 0
             }.value
-            guard ok else { return "tmux pane으로 이동할 수 없습니다" }
+            guard ok else { return L10n.text("tmux pane으로 이동할 수 없습니다") }
         }
-        guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return "터미널 위치를 확인할 수 없습니다" }
+        guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return L10n.text("터미널 위치를 확인할 수 없습니다") }
         let source = scriptSource(bundleID: runtime.terminalBundleID ?? "", tty: tty)
         var error: NSDictionary?
         let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
         lastResultCode = result.map { Int($0.int32Value) }
         lastErrorCode = error?[NSAppleScript.errorNumber] as? Int
-        if lastErrorCode == -1743 { return "터미널 자동화 권한이 필요합니다" }
-        if lastErrorCode == -1712 { return "터미널이 응답하지 않습니다" }
-        if error != nil || lastResultCode != 1 { return "터미널 창을 찾을 수 없습니다" }
+        if lastErrorCode == -1743 { return L10n.text("터미널 자동화 권한이 필요합니다") }
+        if lastErrorCode == -1712 { return L10n.text("터미널이 응답하지 않습니다") }
+        if error != nil || lastResultCode != 1 { return L10n.text("터미널 창을 찾을 수 없습니다") }
         return nil
     }
 

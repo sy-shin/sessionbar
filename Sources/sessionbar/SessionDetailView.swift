@@ -16,69 +16,72 @@ struct SessionDetailView: View {
             if let session {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(session.projectName.isEmpty ? "Codex 세션" : session.projectName).font(.title2.weight(.semibold))
-                        Text(session.title).font(.subheadline).textSelection(.enabled)
+                        Text(session.projectName.isEmpty ? L10n.text("Codex 세션") : session.projectName).font(.title2.weight(.semibold))
+                        Text(session.isPlaceholder ? L10n.text(session.title) : session.title).font(.subheadline).textSelection(.enabled)
                         Text(session.projectPath).font(.caption).foregroundStyle(SessionTheme.muted).textSelection(.enabled)
                     }
                     Spacer()
                     SessionStatusBadge(state: session.state)
                 }
                 HStack {
-                    Text("마지막 활동 \(session.lastActivity.formatted())")
+                    Text(session.isPlaceholder ? L10n.text("마지막 활동 불명") : L10n.format("마지막 활동 %@", L10n.date(session.lastActivity)))
                     Spacer()
                     if let terminal = session.runtime?.terminalName { Text(terminal) }
                 }.font(.caption).foregroundStyle(SessionTheme.muted)
-                Text(session.evidence).font(.caption).foregroundStyle(SessionTheme.muted)
+                Text(L10n.text(session.evidence)).font(.caption).foregroundStyle(SessionTheme.muted)
                 Divider()
                 if loading { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
                 else if let detail {
                     VSplitView {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 14) {
-                                Text("최신 Codex 응답").font(.headline)
-                                MarkdownResponseView(text: detail.latestResponse ?? "아직 표시할 응답이 없습니다")
+                                Text(L10n.text("최신 Codex 응답")).font(.headline)
+                                MarkdownResponseView(text: detail.latestResponse ?? L10n.text("아직 표시할 응답이 없습니다"))
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
                                 .sessionCard()
                         }.frame(minHeight: 160)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("최근 활동").font(.headline)
-                            if detail.activities.isEmpty { Text("표시할 활동이 없습니다").foregroundStyle(SessionTheme.muted) }
+                            Text(L10n.text("최근 활동")).font(.headline)
+                            if detail.activities.isEmpty { Text(L10n.text("표시할 활동이 없습니다")).foregroundStyle(SessionTheme.muted) }
                             List(detail.activities) { activity in
                                 HStack(alignment: .firstTextBaseline, spacing: 14) {
-                                    Text(activity.date.formatted(date: .numeric, time: .shortened))
+                                    Text(L10n.date(activity.date))
                                         .font(.caption.monospacedDigit()).foregroundStyle(SessionTheme.muted).frame(width: 160, alignment: .leading)
-                                    Text(activity.label).font(.callout).textSelection(.enabled)
+                                    Text(L10n.activity(activity)).font(.callout).textSelection(.enabled)
                                 }
                             }.listStyle(.plain).scrollContentBackground(.hidden)
                         }.padding(18).frame(minHeight: 100, idealHeight: 180).sessionCard()
                     }
-                } else { ContentUnavailableView("세션 기록을 읽을 수 없습니다", systemImage: "doc.badge.ellipsis") }
+                } else { ContentUnavailableView(L10n.text("세션 기록을 읽을 수 없습니다"), systemImage: "doc.badge.ellipsis") }
+                if session.isPlaceholder {
+                    Button(L10n.text("세션 폴더 연결…")) { store.connectSessionFolder() }
+                }
                 Divider()
                 HStack {
                     if TerminalConnector.canReturn(session.runtime) {
-                        Button("터미널로 돌아가기") {
+                        Button(L10n.text("터미널로 돌아가기")) {
                             returning = true
                             Task { actionError = await store.returnToSession(id: sessionID); returning = false }
                         }.disabled(returning)
                     }
-                    Button("프로젝트 폴더 열기") {
+                    Button(L10n.text("프로젝트 폴더 열기")) {
                         if !session.projectPath.isEmpty {
                             if !NSWorkspace.shared.open(URL(fileURLWithPath: session.projectPath, isDirectory: true)) {
-                                actionError = "프로젝트 폴더를 열 수 없습니다"
+                                actionError = L10n.text("프로젝트 폴더를 열 수 없습니다")
                             }
                         }
                     }.disabled(session.projectPath.isEmpty)
-                    Menu("복사") {
-                        Button("재개 명령") { copy("codex resume \(shellQuoted(sessionID))") }
-                        Button("세션 ID") { copy(sessionID) }
-                        Button("프로젝트 경로") { copy(session.projectPath) }
+                    Menu(L10n.text("복사")) {
+                        Button(L10n.text("재개 명령")) { copy("codex resume \(shellQuoted(sessionID))") }.disabled(session.isPlaceholder)
+                        Button(L10n.text("세션 ID")) { copy(sessionID) }.disabled(session.isPlaceholder)
+                        Button(L10n.text("프로젝트 경로")) { copy(session.projectPath) }
                     }
                     Spacer()
-                    Button { Task { await reload() } } label: { Image(systemName: "arrow.clockwise") }
-                        .help("새로고침").accessibilityLabel("상세 새로고침")
+                    Button { store.refresh(); Task { await reload() } } label: { Image(systemName: "arrow.clockwise") }
+                        .help(L10n.text("새로고침")).accessibilityLabel(L10n.text("상세 새로고침"))
                 }
-                if let actionError { Text(actionError).font(.caption).foregroundStyle(.red) }
-            } else { ContentUnavailableView("세션을 찾을 수 없습니다", systemImage: "doc.badge.questionmark") }
+                if let actionError { Text(L10n.text(actionError)).font(.caption).foregroundStyle(.red) }
+            } else { ContentUnavailableView(L10n.text("세션을 찾을 수 없습니다"), systemImage: "doc.badge.questionmark") }
         }
         .padding(24).frame(minWidth: 600, minHeight: 460)
         .sessionTheme()

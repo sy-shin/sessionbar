@@ -170,12 +170,12 @@ public struct IncrementalSessionReader {
     public init(url: URL) { self.url = url }
 
     public mutating func read() -> SessionSnapshot? {
-        guard let metadata = SessionFileMetadata.read(url),
-              let handle = try? FileHandle(forReadingFrom: url) else { return nil }
-        defer { try? handle.close() }
+        guard let metadata = SessionFileMetadata.read(url) else { return nil }
         let size = metadata.size
         let modified = metadata.modified
         if initialized && size == cursor && modified == modifiedAt { return snapshot.id == nil ? nil : snapshot }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
         if !initialized || size < cursor || (size == cursor && modified != modifiedAt) || size - cursor > 2 * 1024 * 1024 {
             snapshot = SessionSnapshot(); pending = Data(); cursor = 0
             if size > UInt64(Self.tailLimit) {

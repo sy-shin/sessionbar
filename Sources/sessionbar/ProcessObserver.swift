@@ -33,15 +33,20 @@ actor ProcessObserver {
             return ProcessSnapshot(byFile: [:], codexCount: codex.count, available: false)
         }
         var currentPID: Int32?
+        var descriptor = "", fileType = ""
+        var workingDirectories: [Int32: String] = [:]
         var rollouts: [(Int32, URL)] = []
         var ttys: [Int32: String] = [:]
         for line in files.output.split(whereSeparator: \.isNewline) {
             guard let first = line.first else { continue }
             let value = String(line.dropFirst())
-            if first == "p" { currentPID = Int32(value) }
+            if first == "p" { currentPID = Int32(value); descriptor = ""; fileType = "" }
+            else if first == "f" { descriptor = value; fileType = "" }
+            else if first == "t" { fileType = value }
             else if first == "n", let pid = currentPID {
+                if descriptor == "cwd", fileType == "DIR" { workingDirectories[pid] = value }
                 if value.hasPrefix("/dev/ttys") { ttys[pid] = value }
-                if value.hasSuffix(".jsonl") && value.contains("/sessions/") {
+                if fileType == "REG", value.hasSuffix(".jsonl") && value.contains("/sessions/") {
                     rollouts.append((pid, URL(fileURLWithPath: value).standardizedFileURL))
                 }
             }
@@ -84,7 +89,7 @@ actor ProcessObserver {
             }
             let runtime = SessionRuntime(processID: pid, tty: tty, terminalName: pane == nil ? terminalName : "tmux",
                                          terminalBundleID: bundleID, tmuxPane: pane?.pane,
-                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY)
+                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid])
             if result[url]?.tty == nil || runtime.tty != nil { result[url] = runtime }
         }
         return ProcessSnapshot(byFile: result, codexCount: codex.count, available: true)

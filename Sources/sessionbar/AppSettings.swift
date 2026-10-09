@@ -5,6 +5,7 @@ import SessionbarCore
 
 @MainActor
 final class AppSettings: ObservableObject {
+    @Published var language: AppLanguage { didSet { persist() } }
     @Published var retentionDays: Int { didSet { persist() } }
     @Published var refreshInterval: Int { didSet { persist() } }
     @Published var compactMenu: Bool { didSet { persist() } }
@@ -36,6 +37,7 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let prefix = "sessionbar."
+        language = AppLanguage(rawValue: defaults.string(forKey: prefix + "language") ?? "system") ?? .system
         defaults.register(defaults: [prefix + "retentionDays": 30, prefix + "refreshInterval": 15,
             prefix + "sound": true, prefix + "quietStart": 22, prefix + "quietEnd": 8,
             prefix + "cooldownMinutes": 10, prefix + "watchFiles": true, prefix + "attentionNotifications": true])
@@ -59,7 +61,7 @@ final class AppSettings: ObservableObject {
     }
 
     private func persist() {
-        let values: [String: Any] = ["retentionDays": retentionDays, "refreshInterval": refreshInterval,
+        let values: [String: Any] = ["language": language.rawValue, "retentionDays": retentionDays, "refreshInterval": refreshInterval,
             "compactMenu": compactMenu, "watchFiles": watchFiles, "sessionDirectories": sessionDirectories,
             "attentionNotifications": attentionNotifications, "completionNotifications": completionNotifications,
             "errorNotifications": errorNotifications, "sound": sound, "quietHours": quietHours,

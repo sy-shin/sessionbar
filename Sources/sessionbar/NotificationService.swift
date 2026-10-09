@@ -97,11 +97,11 @@ final class NotificationService {
         if record.state == .needsAttentionEstimate && currentStates[record.id] != .needsAttentionEstimate { return }
         let content = UNMutableNotificationContent()
         switch record.state {
-        case .needsAttentionEstimate: content.title = "Codex 확인 필요 추정"
-        case .error: content.title = "Codex 오류"
-        default: content.title = "Codex 작업 완료"
+        case .needsAttentionEstimate: content.title = L10n.text("Codex 확인 필요 추정")
+        case .error: content.title = L10n.text("Codex 오류")
+        default: content.title = L10n.text("Codex 작업 완료")
         }
-        content.body = record.projectName.isEmpty ? "Codex 세션" : record.projectName
+        content.body = record.projectName.isEmpty ? L10n.text("Codex 세션") : record.projectName
         content.sound = settings.sound ? .default : nil
         content.userInfo = ["sessionID": record.id]
         let request = UNNotificationRequest(identifier: "sessionbar-\(record.id)-\(record.state.rawValue)", content: content, trigger: nil)

@@ -62,7 +62,7 @@ struct SessionIconButtonStyle: ButtonStyle {
 struct SessionStatusBadge: View {
     let state: SessionState
     var body: some View {
-        Label(state.koreanLabel, systemImage: state.symbol)
+        Label(state.localizedLabel, systemImage: state.symbol)
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(state.color)
             .padding(.horizontal, 8).padding(.vertical, 5)
