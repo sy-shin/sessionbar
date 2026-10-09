@@ -1,19 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleDevelopmentRegion</key><string>en</string>
-<key>CFBundleLocalizations</key><array><string>en</string><string>ko</string></array>
-<key>NSRemovableVolumesUsageDescription</key><string>Read Codex session records in the session folder on your external drive.</string>
-<key>CFBundleName</key><string>sessionbar</string>
-<key>CFBundleDisplayName</key><string>sessionbar</string>
-<key>CFBundleExecutable</key><string>sessionbar</string>
-<key>CFBundleIdentifier</key><string>io.sessionbar.app</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>CFBundleIconFile</key><string>AppIcon</string>
-<key>LSMinimumSystemVersion</key><string>14.0</string>
-<key>LSUIElement</key><true/>
-<key>NSHighResolutionCapable</key><true/>
-<key>NSAppleEventsUsageDescription</key><string>Return to the terminal window and tab containing the selected Codex session.</string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ko</string>
+	</array>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Read Codex session records in the session folder on your external drive.</string>
+	<key>CFBundleName</key>
+	<string>sessionbar</string>
+	<key>CFBundleDisplayName</key>
+	<string>sessionbar</string>
+	<key>CFBundleExecutable</key>
+	<string>sessionbar</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.sessionbar.app</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.2.0</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Return to the terminal window and tab containing the selected Codex session.</string>
+</dict>
+</plist>

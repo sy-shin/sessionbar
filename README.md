@@ -9,13 +9,15 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-806545?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+">
-  <img src="https://img.shields.io/badge/Swift-6%2B-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6+">
+  <img src="https://img.shields.io/badge/Mac-Apple%20Silicon%20%2B%20Intel-806545?style=for-the-badge" alt="Apple Silicon + Intel">
+  <a href="https://github.com/sy-shin/sessionbar/actions/workflows/ci.yml"><img src="https://github.com/sy-shin/sessionbar/actions/workflows/ci.yml/badge.svg" alt="Build and test"></a>
   <img src="https://img.shields.io/badge/Language-한국어%20%2F%20English-407A59?style=for-the-badge" alt="한국어 / English">
 </p>
 
 <p align="center">
   <a href="#한국어">한국어</a> · <a href="#english">English</a> ·
-  <a href="https://github.com/sy-shin/sessionbar/archive/refs/heads/main.zip">소스 다운로드 / Download source</a>
+  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1"><strong>앱 다운로드 / Download app</strong></a> ·
+  <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a>
 </p>
 
 ---
@@ -25,6 +27,18 @@
 ## 한국어
 
 **sessionbar**는 macOS 메뉴 막대에서 여러 터미널의 **Codex CLI 세션을 모아 보여주는 앱**입니다. 어느 프로젝트가 작업 중인지, 확인이 필요한 세션이 있는지, 완료된 작업의 결과가 무엇인지 한곳에서 확인할 수 있습니다.
+
+### 24초 사용 영상
+
+세션 목록 → 미확인 요청·결과 → 최신 응답 → 확인 처리 → 작업 창 이동 버튼을 보여줍니다.
+
+<p align="center">
+  <img src="Assets/demo/000_사용흐름_한국어.gif" alt="sessionbar 사용 흐름: 세션 확인, 결과 읽기와 확인 처리" width="900">
+</p>
+
+[한국어 영상 보기 (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.1/000_사용흐름_한국어.mp4) · [버전별 변경 내용](docs/001_변경기록.md)
+
+<sub>앱 화면에 예시 프로젝트와 대화를 사용했습니다.</sub>
 
 ### 이런 작업에 편리합니다
 
@@ -68,7 +82,7 @@
 
 #### 작업 창으로 이동
 
-목록이나 상세 화면의 **작업 창으로 이동**을 누르면 해당 세션을 실행한 앱으로 돌아갑니다. Terminal·iTerm2는 연결된 창·탭을 찾고, tmux는 연결 정보가 있을 때 pane을 선택합니다. 다른 앱은 프로젝트에 해당하는 창을 찾아 엽니다. 창을 구분할 수 없으면 앱을 열어 주므로 작업 창을 직접 선택하세요.
+목록이나 상세 화면의 **작업 창으로 이동**을 누르면 해당 세션을 실행한 앱으로 돌아갑니다. Terminal·iTerm2는 연결된 창·탭을 찾고, tmux는 연결 정보가 있을 때 pane을 선택합니다. 다른 앱은 프로젝트에 해당하는 창을 찾아 엽니다. 창·탭을 찾거나 구분할 수 없으면 앱을 열어 주므로 작업 창을 직접 선택하세요.
 
 창 이동에 필요한 경우 macOS가 **자동화** 또는 **접근성** 권한을 요청합니다. 권한이 없어도 프로젝트 폴더 열기와 재개 명령 복사를 사용할 수 있습니다.
 
@@ -92,15 +106,13 @@
 
 ### 설치하고 사용하기
 
-**macOS 14 이상 · Swift 6 이상 · Command Line Tools 또는 Xcode**가 필요합니다.
+**macOS 14 이상 · Apple Silicon 및 Intel Mac**에서 사용할 수 있습니다.
 
-```sh
-git clone https://github.com/sy-shin/sessionbar.git
-cd sessionbar
-./scripts/build-app.sh --install
-```
+[**macOS 앱 다운로드 — 0.2.0-beta.1**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1)
 
-앱은 `~/Applications/sessionbar.app`에 설치됩니다.
+DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 실행하세요. ZIP으로도 받을 수 있습니다. 컴파일러 설치는 필요하지 않습니다.
+
+시험 배포의 첫 실행 및 업데이트 절차는 [설치 안내](docs/000_설치및업데이트.md)를 확인하세요.
 
 1. 앱을 열어 현재 열린 Codex 세션을 확인합니다. 목록 창을 닫아도 메뉴 막대에 남아 있습니다.
 2. 메뉴 막대 아이콘을 눌러 목록을 열고, 세션을 선택해 최근 응답을 읽습니다.
@@ -123,7 +135,15 @@ cd sessionbar
 <details>
 <summary>빌드 옵션과 테스트</summary>
 
-앱 파일만 빌드하려면:
+소스에서 설치하려면 Swift 6 이상과 Command Line Tools 또는 Xcode가 필요합니다.
+
+```sh
+git clone https://github.com/sy-shin/sessionbar.git
+cd sessionbar
+./scripts/build-app.sh --install
+```
+
+`~/Applications/sessionbar.app`에 설치됩니다. 앱 파일만 빌드하려면:
 
 ```sh
 ./scripts/build-app.sh
@@ -146,6 +166,18 @@ cd sessionbar
 ## English
 
 **sessionbar** brings **Codex CLI sessions from multiple terminals** into your macOS menu bar. See which projects are working, find sessions that may need your input, and read the results of completed tasks in one place.
+
+### 24-second walkthrough
+
+Session list → unreviewed requests and results → latest reply → review action → return button.
+
+<p align="center">
+  <img src="Assets/demo/000_사용흐름_영문.gif" alt="sessionbar walkthrough: checking sessions, reading replies, and reviewing results" width="900">
+</p>
+
+[Watch the English video (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.1/000_사용흐름_영문.mp4) · [Changelog](docs/001_변경기록.md)
+
+<sub>The app screens use example projects and conversations.</sub>
 
 ### When it helps
 
@@ -189,7 +221,7 @@ Select a session to open its **latest Codex reply and recent activity**. Resize 
 
 #### Return to the task window
 
-Select **Go to window** in the list or detail window to return to the app that opened the session. Terminal and iTerm2 locate the connected window and tab; tmux selects its pane when connection information is available. Other apps locate a matching project window. If the window cannot be distinguished, the app opens so you can select the task window.
+Select **Go to window** in the list or detail window to return to the app that opened the session. Terminal and iTerm2 locate the connected window and tab; tmux selects its pane when connection information is available. Other apps locate a matching project window. If the window or tab cannot be found or distinguished, the app opens so you can select the task window.
 
 macOS may request **Automation** or **Accessibility** permission for window navigation. Opening the project folder and copying the resume command remain available without those permissions.
 
@@ -213,15 +245,13 @@ Use the clock button to open activity history. Select a date to see **completed 
 
 ### Install and get started
 
-Requires **macOS 14 or later · Swift 6 or later · Command Line Tools or Xcode**.
+Requires **macOS 14 or later · Apple Silicon or Intel Mac**.
 
-```sh
-git clone https://github.com/sy-shin/sessionbar.git
-cd sessionbar
-./scripts/build-app.sh --install
-```
+[**Download the macOS app — 0.2.0-beta.1**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.1)
 
-The app installs to `~/Applications/sessionbar.app`.
+Open the DMG, drag `sessionbar.app` to **Applications**, and open it. A ZIP is also available. No compiler installation is needed.
+
+See the [installation guide](docs/000_설치및업데이트.md) for first launch and beta updates.
 
 1. Open the app to see your current Codex sessions. It stays in the menu bar after you close the list window.
 2. Click the menu bar icon to open the list, then select a session to read its recent reply.
@@ -244,7 +274,15 @@ The app installs to `~/Applications/sessionbar.app`.
 <details>
 <summary>Build options and tests</summary>
 
-To build the app bundle without installing:
+Building from source requires Swift 6 or later and Command Line Tools or Xcode.
+
+```sh
+git clone https://github.com/sy-shin/sessionbar.git
+cd sessionbar
+./scripts/build-app.sh --install
+```
+
+This installs to `~/Applications/sessionbar.app`. To build without installing:
 
 ```sh
 ./scripts/build-app.sh

@@ -2,6 +2,20 @@ import Foundation
 import AppKit
 import SessionbarCore
 
+enum TerminalFocusFailure: Equatable {
+    case unsupported, permissionDenied, timedOut, noMatchingTab, automationFailed, tmuxUnavailable
+    var message: String {
+        switch self {
+        case .unsupported: return "터미널 위치를 확인할 수 없습니다"
+        case .permissionDenied: return "터미널 자동화 권한이 필요합니다"
+        case .timedOut: return "터미널이 응답하지 않습니다"
+        case .noMatchingTab: return "세션이 열린 터미널 탭을 찾을 수 없습니다"
+        case .automationFailed: return "터미널 창을 조회할 수 없습니다"
+        case .tmuxUnavailable: return "tmux pane으로 이동할 수 없습니다"
+        }
+    }
+}
+
 @MainActor
 enum TerminalConnector {
     private(set) static var lastErrorCode: Int?
@@ -13,29 +27,40 @@ enum TerminalConnector {
     }
 
     static func focus(_ runtime: SessionRuntime) async -> String? {
+        let failure = await focusFailure(runtime)
+        return failure.map { L10n.text($0.message) }
+    }
+
+    static func focusFailure(_ runtime: SessionRuntime) async -> TerminalFocusFailure? {
         lastErrorCode = nil
         lastResultCode = nil
-        guard canReturn(runtime) else { return L10n.text("터미널 위치를 확인할 수 없습니다") }
-        if let pane = runtime.tmuxPane, let session = runtime.tmuxSession, let window = runtime.tmuxWindow,
-           let client = runtime.tmuxClientTTY, let executable = ProcessObserver.tmuxExecutable {
+        guard canReturn(runtime) else { return .unsupported }
+        if let pane = runtime.tmuxPane {
+            guard let session = runtime.tmuxSession, let window = runtime.tmuxWindow,
+                  let client = runtime.tmuxClientTTY, let executable = ProcessObserver.tmuxExecutable else { return .tmuxUnavailable }
             let ok = await Task.detached(priority: .userInitiated) {
                 let first = CommandRunner.run(executable, ["select-pane", "-t", pane])
                 let second = CommandRunner.run(executable, ["select-window", "-t", window])
                 let third = CommandRunner.run(executable, ["switch-client", "-c", client, "-t", session])
                 return first.status == 0 && second.status == 0 && third.status == 0
             }.value
-            guard ok else { return L10n.text("tmux pane으로 이동할 수 없습니다") }
+            guard ok else { return .tmuxUnavailable }
         }
-        guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return L10n.text("터미널 위치를 확인할 수 없습니다") }
+        guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return .unsupported }
         let source = scriptSource(bundleID: runtime.terminalBundleID ?? "", tty: tty)
         var error: NSDictionary?
         let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
         lastResultCode = result.map { Int($0.int32Value) }
         lastErrorCode = error?[NSAppleScript.errorNumber] as? Int
-        if lastErrorCode == -1743 { return L10n.text("터미널 자동화 권한이 필요합니다") }
-        if lastErrorCode == -1712 { return L10n.text("터미널이 응답하지 않습니다") }
-        if error != nil || lastResultCode != 1 { return L10n.text("터미널 창을 찾을 수 없습니다") }
-        return nil
+        return classifyFailure(errorCode: lastErrorCode, resultCode: lastResultCode, hadError: error != nil)
+    }
+
+    static func classifyFailure(errorCode: Int?, resultCode: Int?, hadError: Bool) -> TerminalFocusFailure? {
+        if errorCode == -1743 { return .permissionDenied }
+        if errorCode == -1712 { return .timedOut }
+        if hadError || errorCode != nil { return .automationFailed }
+        if resultCode == 0 { return .noMatchingTab }
+        return resultCode == 1 ? nil : .automationFailed
     }
 
     static func scriptSource(bundleID: String, tty: String) -> String {

@@ -89,3 +89,22 @@ import Testing
         #expect(SessionWindowConnector.canReturn(SessionRuntime(processID: 1, terminalBundleID: "example.editor", originAppProcessID: 2)))
     }
 }
+extension ReviewAndWindowTests {
+    @MainActor @Test func terminalFailuresAreDistinctAndMissingTabsRecoverHonestly() {
+        #expect(TerminalConnector.classifyFailure(errorCode: -1743, resultCode: nil, hadError: true) == .permissionDenied)
+        #expect(TerminalConnector.classifyFailure(errorCode: -1712, resultCode: nil, hadError: true) == .timedOut)
+        #expect(TerminalConnector.classifyFailure(errorCode: -1708, resultCode: 0, hadError: true) == .automationFailed)
+        #expect(TerminalConnector.classifyFailure(errorCode: nil, resultCode: nil, hadError: false) == .automationFailed)
+        #expect(TerminalConnector.classifyFailure(errorCode: nil, resultCode: 0, hadError: false) == .noMatchingTab)
+        #expect(TerminalConnector.classifyFailure(errorCode: nil, resultCode: 1, hadError: false) == nil)
+        #expect(SessionWindowConnector.terminalRecovery(.noMatchingTab, activation: .appActivated) == .appActivatedWithoutTab)
+        #expect(SessionWindowConnector.terminalRecovery(.noMatchingTab, activation: .failed("Fixture")) == .terminalFailure(.noMatchingTab))
+        #expect(SessionWindowConnector.terminalRecovery(.permissionDenied, activation: nil) == .terminalFailure(.permissionDenied))
+        #expect(L10n.text(TerminalFocusFailure.automationFailed.message, language: .english) == "Unable to read terminal windows")
+    }
+
+    @MainActor @Test func incompleteTmuxConnectionDoesNotClaimPaneFocus() async {
+        let runtime = SessionRuntime(processID: 42, terminalBundleID: "com.apple.Terminal", tmuxPane: "%1", tmuxClientTTY: "/dev/ttys001")
+        #expect(await TerminalConnector.focusFailure(runtime) == .tmuxUnavailable)
+    }
+}

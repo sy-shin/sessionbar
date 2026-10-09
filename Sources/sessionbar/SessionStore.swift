@@ -177,6 +177,15 @@ final class SessionStore: ObservableObject {
         return await SessionWindowConnector.focus(runtime, projectPath: record.projectPath)
     }
 
+    func activateOriginApp(id: String) async -> WindowReturnResult {
+        guard let url = sessionURLs[id] else { return .failed("세션 기록을 찾을 수 없습니다") }
+        let snapshot = await processObserver.scan()
+        guard snapshot.available, let runtime = snapshot.byFile[url] else {
+            refresh(); return .failed("실행 중인 세션을 찾을 수 없습니다")
+        }
+        return SessionWindowConnector.activateApp(runtime)
+    }
+
     private func showWindow<V: View>(id: String, title: String, width: CGFloat, height: CGFloat, view: V) {
         if let existing = windows[id], existing.isVisible {
             existing.makeKeyAndOrderFront(nil)

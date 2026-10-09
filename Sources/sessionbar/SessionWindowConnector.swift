@@ -3,11 +3,13 @@ import ApplicationServices
 import SessionbarCore
 
 enum WindowReturnResult: Equatable {
-    case focused, appActivated, accessibilityRequired, failed(String)
+    case focused, appActivated, accessibilityRequired, terminalFailure(TerminalFocusFailure), appActivatedWithoutTab, failed(String)
     var message: String? {
         switch self {
         case .focused: return nil
         case .appActivated: return "앱을 열었습니다. 작업 창을 선택해 주세요"
+        case .terminalFailure(let failure): return failure.message
+        case .appActivatedWithoutTab: return "앱으로 이동했습니다. 세션 탭을 선택해 주세요"
         case .accessibilityRequired: return "창 이동에 접근성 권한이 필요합니다"
         case .failed(let message): return message
         }
@@ -25,8 +27,9 @@ enum SessionWindowConnector {
 
     static func focus(_ runtime: SessionRuntime, projectPath: String) async -> WindowReturnResult {
         if TerminalConnector.canReturn(runtime) {
-            if let error = await TerminalConnector.focus(runtime) { return .failed(error) }
-            return .focused
+            guard let failure = await TerminalConnector.focusFailure(runtime) else { return .focused }
+            let activation = failure == .noMatchingTab ? activateApp(runtime) : nil
+            return terminalRecovery(failure, activation: activation)
         }
         guard let app = application(runtime) else { return .failed("세션을 연 앱을 찾을 수 없습니다") }
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -45,6 +48,10 @@ enum SessionWindowConnector {
         guard AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success else { return activateApp(runtime) }
         AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
         return app.activate() ? .focused : .failed("앱 창으로 이동할 수 없습니다")
+    }
+
+    static func terminalRecovery(_ failure: TerminalFocusFailure, activation: WindowReturnResult?) -> WindowReturnResult {
+        failure == .noMatchingTab && activation == .appActivated ? .appActivatedWithoutTab : .terminalFailure(failure)
     }
 
     static func activateApp(_ runtime: SessionRuntime) -> WindowReturnResult {
