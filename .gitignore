@@ -1,0 +1,14 @@
+.build/
+.swiftpm/
+.vscode/
+build/
+DerivedData/
+.DS_Store
+*.xcuserstate
+001_프로젝트내부README.md
+000_조사및구현계획.md
+
+# Swift compiler outputs
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
