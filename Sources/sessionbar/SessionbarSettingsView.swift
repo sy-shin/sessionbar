@@ -15,6 +15,7 @@ struct SessionbarSettingsView: View {
                 }
                 if let error = settings.loginError { Text(error).foregroundStyle(.red).font(.caption) }
                 Toggle("메뉴 막대에 아이콘만 표시", isOn: $settings.compactMenu)
+                Toggle("파일 변경 시 새로고침", isOn: $settings.watchFiles)
                 Picker("완료·유휴 세션 보관 기간", selection: $settings.retentionDays) {
                     Text("7일").tag(7); Text("30일").tag(30); Text("90일").tag(90); Text("모두 표시").tag(0)
                 }

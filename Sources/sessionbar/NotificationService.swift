@@ -8,6 +8,9 @@ final class NotificationService {
     private let settings: AppSettings
     private let coordinator = NotificationCoordinator()
     private var tracker = NotificationTracker()
+    private var currentStates: [String: SessionState] = [:]
+    private var pendingAuthorization: [String: SessionRecord] = [:]
+    private var authorizationInFlight = false
     var onOpenSession: ((String) -> Void)?
 
     init(settings: AppSettings) {
@@ -35,6 +38,7 @@ final class NotificationService {
     }
 
     func observe(_ records: [SessionRecord], now: Date = .now) {
+        currentStates = records.reduce(into: [:]) { $0[$1.id] = $1.state }
         if let until = settings.pauseUntil, until <= now { settings.pauseUntil = nil }
         var preferences = NotificationPreferences()
         preferences.attention = settings.attentionNotifications
@@ -49,6 +53,48 @@ final class NotificationService {
     }
 
     private func deliver(_ record: SessionRecord) {
+        center.getNotificationSettings { [weak self] configuration in
+            Task { @MainActor in
+                guard let self else { return }
+                if configuration.authorizationStatus == .authorized || configuration.authorizationStatus == .provisional {
+                    self.send(record)
+                } else if configuration.authorizationStatus == .notDetermined {
+                    self.pendingAuthorization[record.id + record.state.rawValue] = record
+                    self.authorizePendingNotifications()
+                } else {
+                    self.settings.notificationError = "알림 권한 없음"
+                }
+            }
+        }
+    }
+
+    private func authorizePendingNotifications() {
+        guard !authorizationInFlight else { return }
+        authorizationInFlight = true
+        center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.authorizationInFlight = false
+                self.settings.notificationError = granted ? nil : "알림 권한 없음"
+                let records = self.pendingAuthorization.values
+                self.pendingAuthorization = [:]
+                if granted {
+                    for record in records { self.send(record) }
+                }
+            }
+        }
+    }
+
+    private func send(_ record: SessionRecord) {
+        let enabled: Bool
+        switch record.state {
+        case .needsAttentionEstimate: enabled = settings.attentionNotifications
+        case .completed: enabled = settings.completionNotifications
+        case .error: enabled = settings.errorNotifications
+        default: enabled = false
+        }
+        guard enabled, settings.pauseUntil.map({ $0 <= Date.now }) ?? true else { return }
+        if record.state == .needsAttentionEstimate && currentStates[record.id] != .needsAttentionEstimate { return }
         let content = UNMutableNotificationContent()
         switch record.state {
         case .needsAttentionEstimate: content.title = "Codex 확인 필요 추정"

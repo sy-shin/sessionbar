@@ -21,7 +21,8 @@ struct IncrementalReaderTests {
         let url = try fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try append("\n" + #"{"type":"event_msg","payload":{"type":"task_started"},"timestamp":"2026-10-08T10:00:30Z"}"# + "\n", to: url)
         var reader = IncrementalSessionReader(url: url)
-        let first = try #require(reader.read())
+        let firstOptional = reader.read()
+        let first = try #require(firstOptional)
         #expect(first.record(now: now)?.state == .runningEstimate)
         let count = reader.bytesRead
         _ = reader.read(); #expect(reader.bytesRead == count)
@@ -29,7 +30,8 @@ struct IncrementalReaderTests {
         try append(String(partial.prefix(50)), to: url)
         #expect(reader.read()?.record(now: now)?.state == .runningEstimate)
         try append(String(partial.dropFirst(50)) + "\n", to: url)
-        let complete = try #require(reader.read())
+        let completeOptional = reader.read()
+        let complete = try #require(completeOptional)
         #expect(complete.record(now: now)?.state == .completed)
         #expect(complete.detail.activities.filter { $0.kind == .completed }.count == 1)
         #expect(reader.bytesRead == count + UInt64(partial.utf8.count + 1))
@@ -39,7 +41,8 @@ struct IncrementalReaderTests {
         let url = try fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try append("\n" + #"{"type":"event_msg","payload":{"type":"task_started"},"timestamp":"2026-10-08T10:00:30Z"}"# + "\n", to: url)
         var reader = IncrementalSessionReader(url: url)
-        let started = try #require(reader.read())
+        let startedOptional = reader.read()
+        let started = try #require(startedOptional)
         #expect(started.record(now: now, processObservationAvailable: true)?.state == .unknown)
         #expect(started.record(now: now, runtime: SessionRuntime(processID: 42), processObservationAvailable: true)?.state == .runningEstimate)
         #expect(started.record(now: now.addingTimeInterval(180), runtime: SessionRuntime(processID: 42), processObservationAvailable: true)?.state == .idleEstimate)
@@ -51,7 +54,8 @@ struct IncrementalReaderTests {
         let url = try fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try append("\n" + #"{"type":"response_item","payload":{"type":"function_call","call_id":"input-call","name":"functions.request_user_input","arguments":"{}"},"timestamp":"2026-10-08T10:00:30Z"}"# + "\n", to: url)
         var reader = IncrementalSessionReader(url: url)
-        let input = try #require(reader.read())
+        let inputOptional = reader.read()
+        let input = try #require(inputOptional)
         #expect(input.record(now: now, processObservationAvailable: true)?.state == .unknown)
         #expect(input.record(now: now, runtime: SessionRuntime(processID: 42), processObservationAvailable: true)?.state == .needsAttentionEstimate)
         try append(#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"input-call","output":"answer"},"timestamp":"2026-10-08T10:00:40Z"}"# + "\n", to: url)

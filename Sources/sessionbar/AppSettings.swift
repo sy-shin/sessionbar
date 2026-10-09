@@ -8,6 +8,7 @@ final class AppSettings: ObservableObject {
     @Published var retentionDays: Int { didSet { persist() } }
     @Published var refreshInterval: Int { didSet { persist() } }
     @Published var compactMenu: Bool { didSet { persist() } }
+    @Published var watchFiles: Bool { didSet { persist() } }
     @Published var sessionDirectories: [String] { didSet { persist() } }
     @Published var attentionNotifications: Bool {
         didSet { persist(); if attentionNotifications { onEnableNotifications?(.needsAttentionEstimate) } }
@@ -37,10 +38,11 @@ final class AppSettings: ObservableObject {
         let prefix = "sessionbar."
         defaults.register(defaults: [prefix + "retentionDays": 30, prefix + "refreshInterval": 15,
             prefix + "sound": true, prefix + "quietStart": 22, prefix + "quietEnd": 8,
-            prefix + "cooldownMinutes": 10])
+            prefix + "cooldownMinutes": 10, prefix + "watchFiles": true, prefix + "attentionNotifications": true])
         retentionDays = max(0, defaults.integer(forKey: prefix + "retentionDays"))
         refreshInterval = max(5, defaults.integer(forKey: prefix + "refreshInterval"))
         compactMenu = defaults.bool(forKey: prefix + "compactMenu")
+        watchFiles = defaults.bool(forKey: prefix + "watchFiles")
         sessionDirectories = defaults.stringArray(forKey: prefix + "sessionDirectories") ??
             [FileManager.default.homeDirectoryForCurrentUser.appending(path: ".codex/sessions").path]
         attentionNotifications = defaults.bool(forKey: prefix + "attentionNotifications")
@@ -58,7 +60,7 @@ final class AppSettings: ObservableObject {
 
     private func persist() {
         let values: [String: Any] = ["retentionDays": retentionDays, "refreshInterval": refreshInterval,
-            "compactMenu": compactMenu, "sessionDirectories": sessionDirectories,
+            "compactMenu": compactMenu, "watchFiles": watchFiles, "sessionDirectories": sessionDirectories,
             "attentionNotifications": attentionNotifications, "completionNotifications": completionNotifications,
             "errorNotifications": errorNotifications, "sound": sound, "quietHours": quietHours,
             "quietStart": quietStart, "quietEnd": quietEnd, "cooldownMinutes": cooldownMinutes,

@@ -24,6 +24,7 @@ final class SessionStore: ObservableObject {
     private var timer: Timer?
     private var refreshAgain = false
     private var watchedDirectories: [String] = []
+    private var liveDirectories: [String] = []
     private var scheduledInterval = 0
 
     init() {
@@ -44,11 +45,16 @@ final class SessionStore: ObservableObject {
                 Task { @MainActor in self?.refresh() }
             }
         }
-        if watchedDirectories != settings.sessionDirectories {
-            watchedDirectories = settings.sessionDirectories
+        updateWatcher()
+        refresh()
+    }
+
+    private func updateWatcher() {
+        let paths = settings.watchFiles ? Array(Set(settings.sessionDirectories + liveDirectories)).sorted() : []
+        if watchedDirectories != paths {
+            watchedDirectories = paths
             monitor.start(paths: watchedDirectories) { [weak self] in self?.refresh() }
         }
-        refresh()
     }
 
     func refresh() {
@@ -56,9 +62,10 @@ final class SessionStore: ObservableObject {
         isRefreshing = true
         let directories = settings.sessionDirectories
         Task {
-            async let processes = processObserver.scan()
-            let result = await repository.scan(directories: directories)
-            let runtime = await processes
+            let runtime = await processObserver.scan()
+            liveDirectories = runtime.byFile.keys.map { $0.deletingLastPathComponent().path }
+            updateWatcher()
+            let result = await repository.scan(directories: directories, activeFiles: Array(runtime.byFile.keys))
             var byID: [String: (SessionRecord, URL)] = [:]
             let now = Date()
             for (url, snapshot) in result.snapshots {
@@ -79,7 +86,7 @@ final class SessionStore: ObservableObject {
             notifications.observe(Array(allRecords.values), now: now)
             processCount = runtime.codexCount
             invalidFileCount = result.invalidFiles
-            diagnostic = result.failedDirectories == directories.count ? "세션 폴더를 읽을 수 없습니다" : nil
+            diagnostic = result.snapshots.isEmpty && result.failedDirectories == directories.count ? "세션 폴더를 읽을 수 없습니다" : nil
             lastRefresh = now
             let issues = result.failedDirectories + result.invalidFiles + result.malformedLines
             let message = "세션 \(allRecords.count) · Codex 프로세스 \(runtime.codexCount) · 읽기 문제 \(issues)"
@@ -117,6 +124,11 @@ final class SessionStore: ObservableObject {
         showWindow(id: "history", title: "활동 기록", width: 850, height: 650, view: SessionHistoryView(store: self))
     }
 
+    func openListWindow() {
+        showWindow(id: "sessions", title: "sessionbar", width: 480, height: 570,
+                   view: SessionListView(store: self, settings: settings))
+    }
+
     func openDiagnostics() {
         showWindow(id: "diagnostics", title: "진단", width: 660, height: 420, view: DiagnosticsView(store: self))
     }
@@ -125,7 +137,11 @@ final class SessionStore: ObservableObject {
         guard let url = sessionURLs[id] else { return "세션 기록을 찾을 수 없습니다" }
         let snapshot = await processObserver.scan()
         guard let runtime = snapshot.byFile[url] else { refresh(); return "실행 중인 세션을 찾을 수 없습니다" }
-        return await TerminalConnector.focus(runtime)
+        let error = await TerminalConnector.focus(runtime)
+        if let error {
+            diagnostics.append("\(error) · 오류 \(TerminalConnector.lastErrorCode.map(String.init) ?? "없음") · 결과 \(TerminalConnector.lastResultCode.map(String.init) ?? "없음")")
+        }
+        return error
     }
 
     private func showWindow<V: View>(id: String, title: String, width: CGFloat, height: CGFloat, view: V) {
@@ -136,7 +152,7 @@ final class SessionStore: ObservableObject {
         }
         let window = windows[id] ?? NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: height),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.minSize = NSSize(width: 560, height: 420)
+        window.minSize = NSSize(width: min(width, 650), height: min(height, 460))
         window.isReleasedWhenClosed = false
         window.title = title.isEmpty ? "sessionbar" : title
         window.contentView = NSHostingView(rootView: view)

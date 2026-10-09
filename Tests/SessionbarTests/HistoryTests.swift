@@ -3,6 +3,25 @@ import Testing
 @testable import SessionbarCore
 
 @Suite struct HistoryTests {
+    @Test func historyIndexReadsOnlyAppendsAndResetsOnTruncation() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "sessionbar-history-index-\(UUID().uuidString).jsonl")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let prefix = #"{"type":"session_meta","payload":{"id":"fixture","cwd":"/tmp/project"}}"# + "\n"
+        let event = #"{"type":"event_msg","payload":{"type":"task_complete"},"timestamp":"2026-10-08T10:30:00Z"}"#
+        try Data((prefix + event).utf8).write(to: url)
+        var index = SessionHistoryIndex(url: url)
+        #expect(index.read(from: .distantPast, to: .distantFuture).isEmpty)
+        let firstBytes = index.bytesRead
+        #expect(index.read(from: .distantPast, to: .distantFuture).isEmpty)
+        #expect(index.bytesRead == firstBytes)
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.seekToEnd(); try handle.write(contentsOf: Data("\n".utf8)); try handle.close()
+        #expect(index.read(from: .distantPast, to: .distantFuture).count == 1)
+        #expect(index.bytesRead == firstBytes + 1)
+        try Data(prefix.utf8).write(to: url)
+        #expect(index.read(from: .distantPast, to: .distantFuture).isEmpty)
+    }
+
     @Test func historyUsesDateRangeAndCSVExcludesOptionalDataByDefault() throws {
         let url = FileManager.default.temporaryDirectory.appending(path: "sessionbar-history-\(UUID().uuidString).jsonl")
         defer { try? FileManager.default.removeItem(at: url) }

@@ -33,6 +33,7 @@ enum CommandRunner {
         if timedOut { process.terminate() }
         if timedOut && ended.wait(timeout: .now() + 1) == .timedOut { kill(process.processIdentifier, SIGKILL) }
         reader.wait()
+        process.waitUntilExit()
         return CommandResult(status: process.terminationStatus, output: String(decoding: buffer.data, as: UTF8.self), timedOut: timedOut)
     }
 }

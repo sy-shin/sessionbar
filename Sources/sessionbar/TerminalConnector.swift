@@ -4,6 +4,8 @@ import SessionbarCore
 
 @MainActor
 enum TerminalConnector {
+    private(set) static var lastErrorCode: Int?
+    private(set) static var lastResultCode: Int?
     static func canReturn(_ runtime: SessionRuntime?) -> Bool {
         guard let runtime else { return false }
         let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY
@@ -11,6 +13,8 @@ enum TerminalConnector {
     }
 
     static func focus(_ runtime: SessionRuntime) async -> String? {
+        lastErrorCode = nil
+        lastResultCode = nil
         guard canReturn(runtime) else { return "터미널 위치를 확인할 수 없습니다" }
         if let pane = runtime.tmuxPane, let session = runtime.tmuxSession, let window = runtime.tmuxWindow,
            let client = runtime.tmuxClientTTY, let executable = ProcessObserver.tmuxExecutable {
@@ -23,8 +27,20 @@ enum TerminalConnector {
             guard ok else { return "tmux pane으로 이동할 수 없습니다" }
         }
         guard let tty = runtime.tmuxPane == nil ? runtime.tty : runtime.tmuxClientTTY else { return "터미널 위치를 확인할 수 없습니다" }
+        let source = scriptSource(bundleID: runtime.terminalBundleID ?? "", tty: tty)
+        var error: NSDictionary?
+        let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
+        lastResultCode = result.map { Int($0.int32Value) }
+        lastErrorCode = error?[NSAppleScript.errorNumber] as? Int
+        if lastErrorCode == -1743 { return "터미널 자동화 권한이 필요합니다" }
+        if lastErrorCode == -1712 { return "터미널이 응답하지 않습니다" }
+        if error != nil || lastResultCode != 1 { return "터미널 창을 찾을 수 없습니다" }
+        return nil
+    }
+
+    static func scriptSource(bundleID: String, tty: String) -> String {
         let source: String
-        if runtime.terminalBundleID == "com.apple.Terminal" {
+        if bundleID == "com.apple.Terminal" {
             source = """
             with timeout of 10 seconds
                 tell application id "com.apple.Terminal"
@@ -35,13 +51,13 @@ enum TerminalConnector {
                                 set miniaturized of targetWindow to false
                                 set index of targetWindow to 1
                                 activate
-                                return true
+                                return 1
                             end if
                         end repeat
                     end repeat
                 end tell
             end timeout
-            return false
+            return 0
             """
         } else {
             source = """
@@ -55,21 +71,17 @@ enum TerminalConnector {
                                     select targetTab
                                     select targetWindow
                                     activate
-                                    return true
+                                    return 1
                                 end if
                             end repeat
                         end repeat
                     end repeat
                 end tell
             end timeout
-            return false
+            return 0
             """
         }
-        var error: NSDictionary?
-        let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
-        if let code = error?[NSAppleScript.errorNumber] as? Int, code == -1743 { return "터미널 자동화 권한이 필요합니다" }
-        if error != nil || result?.booleanValue != true { return "터미널 창을 찾을 수 없습니다" }
-        return nil
+        return source
     }
 
     private static func validTTY(_ tty: String?) -> Bool {

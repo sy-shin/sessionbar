@@ -18,33 +18,79 @@ public struct SessionHistoryItem: Identifiable, Sendable {
 
 public enum SessionHistoryReader {
     public static func read(url: URL, from start: Date, to end: Date) -> [SessionHistoryItem] {
-        guard let handle = try? FileHandle(forReadingFrom: url) else { return [] }
-        defer { try? handle.close() }
-        var buffer = Data(), result: [SessionHistoryItem] = []
-        var id: String?, cwd = "", title = "제목 없음"
-        var skippingLongLine = false
-        while let data = try? handle.read(upToCount: 64 * 1024), !data.isEmpty {
-            buffer.append(data)
-            while let newline = buffer.firstIndex(of: 10) {
-                let line = Data(buffer[..<newline]); buffer.removeSubrange(...newline)
-                if skippingLongLine { skippingLongLine = false; continue }
-                guard let record = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
-                      let payload = record["payload"] as? [String: Any] else { continue }
-                let type = record["type"] as? String
-                if type == "session_meta" {
-                    id = payload["id"] as? String ?? payload["session_id"] as? String
-                    cwd = payload["cwd"] as? String ?? ""
-                } else if type == "event_msg", payload["type"] as? String == "user_message", title == "제목 없음" {
-                    title = String((payload["message"] as? String ?? "").split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
-                } else if type == "event_msg", payload["type"] as? String == "task_complete",
-                          let id, let date = SessionSnapshot.parseDate(record["timestamp"]), date >= start, date < end {
-                    let state: SessionState = payload["error"] as? [String: Any] == nil ? .completed : .error
-                    result.append(SessionHistoryItem(sessionID: id, projectPath: cwd, title: title, date: date, state: state))
-                }
-            }
-            if buffer.count > 4 * 1024 * 1024 { buffer.removeAll(); skippingLongLine = true }
+        var index = SessionHistoryIndex(url: url)
+        return index.read(from: start, to: end)
+    }
+}
+
+public struct SessionHistoryIndex: Sendable {
+    public let url: URL
+    public private(set) var bytesRead: UInt64 = 0
+    private var offset: UInt64 = 0
+    private var modification: Date?
+    private var buffer = Data()
+    private var items: [SessionHistoryItem] = []
+    private var sessionID: String?
+    private var cwd = ""
+    private var title = "제목 없음"
+    private var skippingLongLine = false
+
+    public init(url: URL) { self.url = url }
+
+    public mutating func read(from start: Date, to end: Date) -> [SessionHistoryItem] {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = (attributes[.size] as? NSNumber)?.uint64Value,
+              let changed = attributes[.modificationDate] as? Date else { return [] }
+        if size < offset || (size == offset && modification != nil && modification != changed) {
+            self = SessionHistoryIndex(url: url)
         }
-        return result
+        if size > offset, let handle = try? FileHandle(forReadingFrom: url) {
+            defer { try? handle.close() }
+            do {
+                try handle.seek(toOffset: offset)
+                let completionMarker = Data("\"task_complete\"".utf8)
+                let metadataMarker = Data("\"session_meta\"".utf8)
+                let newlineMarker = Data([10])
+                while offset < size, !Task.isCancelled {
+                    guard let data = try handle.read(upToCount: Int(min(65_536, size - offset))), !data.isEmpty else { break }
+                    offset += UInt64(data.count); bytesRead += UInt64(data.count)
+                    buffer.append(data)
+                    var consumed = buffer.startIndex
+                    while let newline = buffer.range(of: newlineMarker, in: consumed..<buffer.endIndex)?.lowerBound {
+                        let line = buffer[consumed..<newline]
+                        consumed = newline + 1
+                        if skippingLongLine { skippingLongLine = false; continue }
+                        // Skip response bodies and tool output after the first request is known.
+                        if title != "제목 없음", line.range(of: completionMarker) == nil,
+                           line.range(of: metadataMarker) == nil { continue }
+                        consume(Data(line))
+                    }
+                    if consumed != buffer.startIndex { buffer = Data(buffer[consumed...]) }
+                    if buffer.count > 4 * 1024 * 1024 { buffer.removeAll(); skippingLongLine = true }
+                }
+            } catch { /* Retain already parsed records and retry from the last read offset. */ }
+        }
+        modification = changed
+        return items.filter { $0.date >= start && $0.date < end }
+    }
+
+    private mutating func consume(_ line: Data) {
+        guard let record = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+              let payload = record["payload"] as? [String: Any] else { return }
+        let type = record["type"] as? String
+        if type == "session_meta" {
+            sessionID = payload["id"] as? String ?? payload["session_id"] as? String
+            cwd = payload["cwd"] as? String ?? ""
+        } else if type == "event_msg", payload["type"] as? String == "user_message", title == "제목 없음" {
+            title = String((payload["message"] as? String ?? "").split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
+        } else if type == "response_item", payload["role"] as? String == "user", title == "제목 없음",
+                  let request = SessionSnapshot.userRequestText(payload) {
+            title = String(request.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
+        } else if type == "event_msg", payload["type"] as? String == "task_complete",
+                  let sessionID, let date = SessionSnapshot.parseDate(record["timestamp"]) {
+            let state: SessionState = payload["error"] as? [String: Any] == nil ? .completed : .error
+            items.append(SessionHistoryItem(sessionID: sessionID, projectPath: cwd, title: title, date: date, state: state))
+        }
     }
 }
 

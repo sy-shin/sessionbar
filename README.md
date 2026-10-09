@@ -1,69 +1,120 @@
-<div align="center">
+<p align="center">
+  <img src="Assets/banner.svg" alt="sessionbar — Codex CLI sessions in the macOS menu bar" width="100%">
+</p>
 
-# ⌘ sessionbar
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/Swift-6%2B-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6+">
+</p>
 
-### Codex CLI sessions in the macOS menu bar.
-
-**Codex CLI sessions · status · recent activity.**
-
-![macOS](https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white)
-![Swift](https://img.shields.io/badge/Swift-5.9%2B-F05138?style=for-the-badge&logo=swift&logoColor=white)
-
-[한국어](#한국어) · [English](#english)
-
-</div>
+<p align="center"><a href="#한국어">한국어</a> · <a href="#english">English</a></p>
 
 ---
 
 <a id="한국어"></a>
 
-## 🇰🇷 한국어
+## 한국어
 
-**sessionbar**는 여러 터미널에서 실행한 Codex CLI 세션을 macOS 메뉴 막대 한곳에서 확인하는 네이티브 앱입니다.
+**sessionbar**는 여러 터미널의 Codex CLI 세션을 macOS 메뉴 막대에서 확인하는 앱입니다. 프로젝트와 세션별 상태를 보고, 최근 응답과 작업 기록을 열어 볼 수 있습니다.
 
-### ✨ 기능
+### 기능
 
-- 메뉴 막대에서 세션 수와 상태를 빠르게 확인
-- 프로젝트 경로, 세션 제목, 마지막 활동 시각 확인
-- 실행 추정·유휴 추정·완료·상태 불명 표시
-- 작업 완료·오류 알림, 조용한 시간대 및 1시간 일시 중지
-- 최근 활동과 최신 Codex 응답을 별도 크기 조절 창에서 확인
-- 완료·유휴 세션 보관 기간과 자동 새로고침 간격 설정
-- 프로젝트 폴더 열기, 세션 ID 및 재개 명령 복사
-- 기본 15초 간격 자동 새로고침 및 수동 새로고침
+| | 기능 |
+|:--:|:--|
+| ◉ | **메뉴 막대 요약** — 세션 수와 실행·확인 필요 추정 표시 |
+| ⌕ | **세션 목록** — 프로젝트, 경로, 요청 요약, 마지막 활동, 터미널 정보와 검색 |
+| ◷ | **세션 상세** — 최신 Codex 응답과 최근 활동을 크기 조절 창에서 확인 |
+| ♫ | **알림** — 확인 필요 추정·완료·오류, 알림음, 조용한 시간대, 일시 중지, 반복 제한 |
+| ▦ | **활동 기록** — 날짜별 완료·오류 작업 조회 및 기간을 지정하는 CSV 내보내기 |
+| ⚙ | **설정** — 로그인 시 실행, 메뉴 표시, 보관 기간, 자동 갱신, 세션 폴더 |
 
-### 🛠️ 빌드
+상태는 **실행 추정 · 확인 필요 추정 · 완료 · 유휴 추정 · 오류 · 상태 불명**으로 표시합니다. 마지막 활동 시각과 상태 근거는 세션 상세에서 확인할 수 있습니다.
 
-macOS 14 이상과 Swift 5.9 이상이 필요합니다.
+프로젝트 폴더를 열거나 세션 ID·재개 명령을 복사할 수 있습니다.
+
+### 빌드 및 설치
+
+macOS 14 이상, Swift 6 이상과 Command Line Tools 또는 Xcode가 필요합니다.
 
 ```sh
-swift build
+./scripts/build-app.sh --install
+```
+
+앱은 `~/Applications/sessionbar.app`에 설치됩니다. 앱을 열면 세션 목록이 표시되고, 목록 창을 닫은 뒤에도 메뉴 막대에서 사용할 수 있습니다.
+
+앱 파일만 빌드하려면:
+
+```sh
+./scripts/build-app.sh
+```
+
+생성된 앱은 `build/sessionbar.app`입니다.
+
+### 사용
+
+1. 메뉴 막대의 터미널 아이콘을 눌러 열린 세션을 확인합니다.
+2. 세션을 선택하면 최신 응답과 활동을 볼 수 있습니다.
+3. 시계 버튼으로 날짜별 활동 기록을, 톱니바퀴 버튼으로 설정을 엽니다.
+
+기본 새로고침 간격은 **15초**, 완료·유휴 기록 보관 기간은 **30일**입니다. 파일이 바뀔 때도 목록을 갱신합니다.
+
+### 검증
+
+```sh
+./scripts/swift.sh test
 ```
 
 ---
 
 <a id="english"></a>
 
-## 🇺🇸 English
+## English
 
-**sessionbar** is a native macOS menu bar app for viewing Codex CLI sessions running across multiple terminals.
+**sessionbar** shows Codex CLI sessions from multiple terminals in the macOS menu bar. View each project's sessions, check their status, and open recent replies and task history.
 
-### ✨ Features
+### Features
 
-- Check session counts and status from the menu bar
-- View project paths, session titles, and last activity
-- Show running estimates, idle estimates, completed sessions, errors, and unknown status
-- Configure completion and error notifications, quiet hours, and a one hour pause
-- Open recent activity and the latest Codex response in a resizable window
-- Set retention for completed and idle sessions, and choose the refresh interval
-- Open the project folder, or copy the session ID and resume command
-- Refresh every 15 seconds by default or on demand
+| | Feature |
+|:--:|:--|
+| ◉ | **Menu bar summary** — session counts, running estimates, and attention estimates |
+| ⌕ | **Session list** — projects, paths, request summaries, last activity, terminal information, and search |
+| ◷ | **Session details** — latest Codex reply and recent activity in a resizable window |
+| ♫ | **Notifications** — attention estimates, completions, errors, sound, quiet hours, pause, and repeat limits |
+| ▦ | **Activity history** — completed and failed tasks by date, plus CSV export for a chosen range |
+| ⚙ | **Settings** — launch at login, menu display, retention, automatic refresh, and session folders |
 
-### 🛠️ Build
+Statuses are **running estimate · attention estimate · completed · idle estimate · error · unknown**. Session details show the last activity time and the evidence behind the status.
 
-Requires macOS 14 or later and Swift 5.9 or later.
+Open the project folder or copy a session ID or resume command.
+
+### Build and install
+
+Requires macOS 14 or later, Swift 6 or later, and Command Line Tools or Xcode.
 
 ```sh
-swift build
+./scripts/build-app.sh --install
 ```
 
+The app installs to `~/Applications/sessionbar.app`. Opening it shows the session list. After closing that window, the app remains available in the menu bar.
+
+To build the app bundle without installing:
+
+```sh
+./scripts/build-app.sh
+```
+
+The output is `build/sessionbar.app`.
+
+### Usage
+
+1. Click the terminal icon in the menu bar to see open sessions.
+2. Select a session to read its latest reply and recent activity.
+3. Use the clock button for daily history and the gear button for settings.
+
+The default refresh interval is **15 seconds**, and completed and idle records are retained for **30 days**. File changes also refresh the list.
+
+### Verification
+
+```sh
+./scripts/swift.sh test
+```

@@ -86,6 +86,16 @@ final class SessionFileParserTests {
         #expect(SessionFileParser.parse(url: second, now: now)?.state == .completed)
     }
 
+    @Test func testUserMessageFallbackSkipsInjectedContext() throws {
+        let (url, now) = try makeSession([
+            metadata(),
+            ##"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for sample"}]},"timestamp":"2026-10-08T10:00:00Z"}"##,
+            #"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Build a sample app"}]},"timestamp":"2026-10-08T10:00:01Z"}"#,
+            event("task_complete", at: "2026-10-08T10:00:30Z")
+        ])
+        #expect(SessionFileParser.parse(url: url, now: now)?.title == "Build a sample app")
+    }
+
     @Test func testDetailReturnsLatestFinalResponseAndRecentActivities() throws {
         let (url, _) = try makeSession([
             metadata(),

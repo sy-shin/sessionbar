@@ -4,9 +4,14 @@ import SessionbarCore
 
 @main
 struct SessionbarApp: App {
-    @StateObject private var store = SessionStore()
+    @NSApplicationDelegateAdaptor(SessionbarDelegate.self) private var delegate
+    @StateObject private var store: SessionStore
 
-    init() { NSApplication.shared.setActivationPolicy(.accessory) }
+    init() {
+        NSApplication.shared.setActivationPolicy(.accessory)
+        let store = SessionbarDelegate.store
+        _store = StateObject(wrappedValue: store)
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -43,7 +48,7 @@ private struct SessionMenuLabel: View {
     }
 }
 
-private struct SessionListView: View {
+struct SessionListView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var settings: AppSettings
     @Environment(\.openSettings) private var openSettings
@@ -100,7 +105,9 @@ private struct SessionListView: View {
             }.padding(.horizontal, 16).padding(.bottom, 12)
 
             Divider()
-            if let diagnostic = store.diagnostic {
+            if store.isRefreshing && store.lastRefresh == nil {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let diagnostic = store.diagnostic {
                 ContentUnavailableView(diagnostic, systemImage: "folder.badge.questionmark")
             } else if visibleSessions.isEmpty {
                 VStack(spacing: 12) {
@@ -168,6 +175,9 @@ private struct SessionRow: View {
                 }.font(.caption2).foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(session.projectName), \(session.state.koreanLabel), \(session.title), 마지막 활동 \(session.lastActivity.formatted())")
+        .accessibilityHint(session.evidence)
         .help("\(session.evidence) · 마지막 활동 \(session.lastActivity.formatted())")
     }
 }

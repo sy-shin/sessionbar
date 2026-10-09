@@ -6,6 +6,7 @@ public struct SessionSnapshot: Sendable {
     var id: String?
     var cwd = ""
     var title: String?
+    var fallbackTitle: String?
     var source: String?
     var lastActivity = Date.distantPast
     var stateRecordedAt = Date.distantPast
@@ -47,7 +48,7 @@ public struct SessionSnapshot: Sendable {
                 state = .unknown; evidence = "현재 상태를 확인할 근거 없음"
             }
         }
-        return SessionRecord(id: id, projectPath: cwd, title: title ?? "제목 없음", lastActivity: lastActivity,
+        return SessionRecord(id: id, projectPath: cwd, title: title ?? fallbackTitle ?? "제목 없음", lastActivity: lastActivity,
                              state: state, source: source, evidence: evidence, runtime: runtime, stateRecordedAt: stateRecordedAt)
     }
 
@@ -62,6 +63,10 @@ public struct SessionSnapshot: Sendable {
         if type == "event_msg", payload["type"] as? String == "user_message", title == nil,
            let message = payload["message"] as? String {
             title = String(message.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
+        }
+        if type == "response_item", payload["role"] as? String == "user", fallbackTitle == nil,
+           let request = Self.userRequestText(payload) {
+            fallbackTitle = String(request.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(100))
         }
         guard !metadataOnly else { return }
         let date = Self.parseDate(record["timestamp"]) ?? lastActivity
@@ -108,6 +113,19 @@ public struct SessionSnapshot: Sendable {
         }
     }
 
+    static func userRequestText(_ payload: [String: Any]) -> String? {
+        guard let blocks = payload["content"] as? [[String: Any]] else { return nil }
+        let markers = ["# AGENTS.md instructions", "<environment_context>", "<user_instructions>", "<INSTRUCTIONS>", "<permissions", "<codex_internal_context"]
+        let texts = blocks.compactMap { block -> String? in
+            guard block["type"] as? String == "input_text", let raw = block["text"] as? String else { return nil }
+            let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty, !markers.contains(where: { text.hasPrefix($0) }) else { return nil }
+            if let request = text.range(of: "## My request:") { return String(text[request.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines) }
+            return text
+        }
+        return texts.isEmpty ? nil : texts.joined(separator: " ")
+    }
+
     static func parseDate(_ value: Any?) -> Date? {
         guard let raw = value as? String else { return nil }
         let formatter = ISO8601DateFormatter()
@@ -152,12 +170,12 @@ public struct IncrementalSessionReader {
     public init(url: URL) { self.url = url }
 
     public mutating func read() -> SessionSnapshot? {
-        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]),
-              let sizeValue = values.fileSize,
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let sizeValue = attributes[.size] as? NSNumber,
               let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-        let size = UInt64(max(sizeValue, 0))
-        let modified = values.contentModificationDate
+        let size = sizeValue.uint64Value
+        let modified = attributes[.modificationDate] as? Date
         if initialized && size == cursor && modified == modifiedAt { return snapshot.id == nil ? nil : snapshot }
         if !initialized || size < cursor || (size == cursor && modified != modifiedAt) || size - cursor > 2 * 1024 * 1024 {
             snapshot = SessionSnapshot(); pending = Data(); cursor = 0
