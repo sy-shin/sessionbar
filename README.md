@@ -36,7 +36,7 @@
   <img src="Assets/demo/000_사용흐름_한국어.gif" alt="sessionbar 사용 흐름: 세션 확인, 결과 읽기와 확인 처리" width="900">
 </p>
 
-[한국어 영상 보기 (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_사용흐름_한국어.mp4) · [버전별 변경 내용](docs/001_변경기록.md)
+[한국어 영상 보기 (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_sessionbar_demo_ko.mp4) · [버전별 변경 내용](docs/001_변경기록.md)
 
 <sub>앱 화면에 예시 프로젝트와 대화를 사용했습니다.</sub>
 
@@ -175,7 +175,7 @@ Session list → unreviewed requests and results → latest reply → review act
   <img src="Assets/demo/000_사용흐름_영문.gif" alt="sessionbar walkthrough: checking sessions, reading replies, and reviewing results" width="900">
 </p>
 
-[Watch the English video (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_사용흐름_영문.mp4) · [Changelog](docs/001_변경기록.md)
+[Watch the English video (MP4)](https://github.com/sy-shin/sessionbar/releases/download/v0.2.0-beta.2/000_sessionbar_demo_en.mp4) · [Changelog](docs/001_변경기록.md)
 
 <sub>The app screens use example projects and conversations.</sub>
 

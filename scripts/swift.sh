@@ -51,8 +51,12 @@ fi
 if [[ -f "$sessionbar_tools/use-custom-libs" || -f "$sessionbar_tools/use-overlay" ]]; then
     export SWIFT_EXEC_MANIFEST="$sessionbar_tools/manifest-swiftc"
 fi
-if [[ "${1:-}" == "test" && -d "$sessionbar_developer/Library/Developer/Frameworks/Testing.framework" ]]; then
-    sessionbar_flags+=(--disable-xctest -Xswiftc -F -Xswiftc "$sessionbar_developer/Library/Developer/Frameworks")
+if [[ "${1:-}" == "test" ]]; then
+    # This repository uses Swift Testing exclusively, including executable-target tests.
+    sessionbar_flags+=(--disable-xctest)
+    if [[ -d "$sessionbar_developer/Library/Developer/Frameworks/Testing.framework" ]]; then
+        sessionbar_flags+=(-Xswiftc -F -Xswiftc "$sessionbar_developer/Library/Developer/Frameworks")
+    fi
 fi
 cd "$sessionbar_root"
 # Bash 3 treats an empty array as unset with nounset enabled.
