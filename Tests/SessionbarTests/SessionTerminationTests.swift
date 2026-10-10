@@ -25,8 +25,8 @@ import SessionbarCore
           for(;;)pause();
         }
         """.write(to: source, atomically: true, encoding: .utf8)
-        let compilation = await CommandRunner.runAsync("/usr/bin/clang", [source.path, "-o", executable.path])
-        #expect(compilation.status == 0)
+        let compilation = await CommandRunner.runAsync("/usr/bin/clang", [source.path, "-o", executable.path], timeout: 30)
+        try #require(compilation.status == 0)
         let data = Data("{\"type\":\"session_meta\",\"payload\":{\"id\":\"fixture\",\"cwd\":\"/tmp/project\"}}\n".utf8)
         let file = sessions.appending(path: "rollout-fixture.jsonl")
         try data.write(to: file)

@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="#한국어">한국어</a> · <a href="#english">English</a> ·
-  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4"><strong>앱 다운로드 / Download app</strong></a> ·
+  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.5"><strong>앱 다운로드 / Download app</strong></a> ·
   <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a> ·
   <a href="docs/003_이용조건.md">이용 조건 / License</a>
 </p>
@@ -109,7 +109,7 @@
 
 **macOS 14 이상 · Apple Silicon 및 Intel Mac**에서 사용할 수 있습니다.
 
-[**macOS 앱 다운로드 — 0.2.0-beta.4**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4)
+[**macOS 앱 다운로드 — 0.2.0-beta.5**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.5)
 
 DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 실행하세요. ZIP으로도 받을 수 있습니다. 컴파일러 설치는 필요하지 않습니다.
 
@@ -256,7 +256,7 @@ Use the clock button to open activity history. Select a date to see **completed 
 
 Requires **macOS 14 or later · Apple Silicon or Intel Mac**.
 
-[**Download the macOS app — 0.2.0-beta.4**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4)
+[**Download the macOS app — 0.2.0-beta.5**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.5)
 
 Open the DMG, drag `sessionbar.app` to **Applications**, and open it. A ZIP is also available. No compiler installation is needed.
 

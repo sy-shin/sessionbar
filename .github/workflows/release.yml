@@ -1,0 +1,48 @@
+name: Publish release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download verified Universal package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: gh run download "$RUN_ID" --name sessionbar-macos-15 --dir release
+      - name: Verify and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ ]]
+          (cd release && sha256sum --check SHA256SUMS.txt)
+          cmp LICENSE release/LICENSE
+          version="${RELEASE_TAG#v}"
+          options=()
+          if [[ "$version" == *-* ]]; then options+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" \
+            release/LICENSE release/SHA256SUMS.txt \
+            "release/sessionbar-$version-macos-universal.dmg" \
+            "release/sessionbar-$version-macos-universal.zip" \
+            --verify-tag --title "sessionbar $version" \
+            --notes-file docs/005_세션종료수정배포.md "${options[@]}"

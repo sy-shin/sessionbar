@@ -14,8 +14,8 @@ import AppKit
         try Data("{}\n".utf8).write(to: file)
         let source = root.appending(path: "fixture.c"), executable = root.appending(path: "codex")
         try "#include <fcntl.h>\n#include <unistd.h>\nint main(int argc,char**argv){if(argc!=2||open(argv[1],O_RDONLY)<0)return 2;pause();return 0;}\n".write(to: source, atomically: true, encoding: .utf8)
-        let compilation = await CommandRunner.runAsync("/usr/bin/clang", [source.path, "-o", executable.path])
-        #expect(compilation.status == 0)
+        let compilation = await CommandRunner.runAsync("/usr/bin/clang", [source.path, "-o", executable.path], timeout: 30)
+        try #require(compilation.status == 0)
         let process = Process(); process.executableURL = executable; process.arguments = [file.path]
         process.standardOutput = FileHandle.nullDevice; process.standardError = FileHandle.nullDevice
         try process.run()
