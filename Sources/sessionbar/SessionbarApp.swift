@@ -195,8 +195,8 @@ private struct SessionListCard: View {
         }.padding(15).sessionCard()
         .contextMenu {
             if session.runtime != nil {
-                Button(L10n.text("Codex 종료…"), role: .destructive, action: requestTermination)
-                    .disabled(session.runtime?.processStartTime == nil || store.terminatingSessionIDs.contains(session.id))
+                Button(L10n.text("세션 종료…"), role: .destructive, action: requestTermination)
+                    .disabled(session.runtime?.processStartTime == nil || session.runtime?.processMode != .dedicatedCLI || store.terminatingSessionIDs.contains(session.id))
             }
         }
     }

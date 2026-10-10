@@ -17,7 +17,8 @@ import SessionbarCore
         #include <string.h>
         int main(int argc,char**argv){
           for(int i=1;i<argc;i++){
-            if(strcmp(argv[i],"--ignore-term")==0)signal(SIGTERM,SIG_IGN);
+            if(strcmp(argv[i],"exec")==0||strcmp(argv[i],"app-server")==0)continue;
+            else if(strcmp(argv[i],"--ignore-term")==0)signal(SIGTERM,SIG_IGN);
             else if(open(argv[i],O_RDONLY)<0)return 2;
           }
           write(STDOUT_FILENO,"ready",5);
@@ -32,9 +33,9 @@ import SessionbarCore
         return (root, executable, file, data)
     }
 
-    private func launch(_ executable: URL, _ arguments: [String]) throws -> Process {
+    private func launch(_ executable: URL, _ arguments: [String], mode: String = "exec") throws -> Process {
         let process = Process()
-        process.executableURL = executable; process.arguments = arguments
+        process.executableURL = executable; process.arguments = [mode] + arguments
         let ready = Pipe()
         process.standardOutput = ready; process.standardError = FileHandle.nullDevice
         try process.run()
@@ -113,6 +114,27 @@ import SessionbarCore
         #expect(SessionProcessController.validationError("f1\ntREG\nn\(file.path)\nf2\ntREG\nn\(second.path)\n", expected: file) == .ambiguous)
         #expect(await controller.terminate(runtime: SessionRuntime(processID: getpid(), processStartTime: start), file: file) == .changed)
         #expect(SessionProcessController.startTime(of: getpid()) == nil)
+        let serviceFile = file.deletingLastPathComponent().appending(path: "rollout-service.jsonl")
+        let serviceData = Data("{}\n".utf8)
+        try serviceData.write(to: serviceFile)
+        let service = try launch(executable, [serviceFile.path], mode: "app-server")
+        defer { cleanup(service) }
+        let serviceStart = try #require(SessionProcessController.startTime(of: service.processIdentifier))
+        let serviceRuntime = SessionRuntime(processID: service.processIdentifier, processStartTime: serviceStart)
+        #expect(await SessionProcessController.mode(of: service.processIdentifier) == .sharedService)
+        #expect(await controller.terminate(runtime: serviceRuntime, file: serviceFile) == .unsupported)
+        #expect(service.isRunning && process.isRunning)
+        #expect(try Data(contentsOf: serviceFile) == serviceData)
+        let command = "/example/codex"
+        #expect(SessionProcessController.classify("ttys001 \(command)", executable: command) == .dedicatedCLI)
+        #expect(SessionProcessController.classify("?? \(command) exec task", executable: command) == .dedicatedCLI)
+        #expect(SessionProcessController.classify("ttys001 \(command) -c model=example resume sample", executable: command) == .dedicatedCLI)
+        #expect(SessionProcessController.classify("ttys001 \(command) app-server --stdio", executable: command) == .sharedService)
+        #expect(SessionProcessController.classify("?? \(command) exec-server", executable: command) == .sharedService)
+        #expect(SessionProcessController.classify("ttys001 \(command) --remote unix://", executable: command) == .sharedService)
+        #expect(SessionProcessController.classify("?? \(command)", executable: command) == .unknown)
+        #expect(SessionProcessController.classify("ttys001 \(command) --unrecognized", executable: command) == .unknown)
+        #expect(SessionProcessController.classify("bad output", executable: command) == .unknown)
     }
 
     @Test func reportsTimeoutWithoutForceKilling() async throws {
@@ -126,6 +148,6 @@ import SessionbarCore
         #expect(await SessionProcessController().terminate(runtime: runtime, file: file) == .stillRunning)
         #expect(process.isRunning)
         #expect(try Data(contentsOf: file) == data)
-        #expect(L10n.text("Codex 종료…", language: .english) == "Quit Codex…")
+        #expect(L10n.text("세션 종료…", language: .english) == "End session…")
     }
 }

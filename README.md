@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="#한국어">한국어</a> · <a href="#english">English</a> ·
-  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3"><strong>앱 다운로드 / Download app</strong></a> ·
+  <a href="https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4"><strong>앱 다운로드 / Download app</strong></a> ·
   <a href="docs/000_설치및업데이트.md">설치 안내 / Installation</a> ·
   <a href="docs/003_이용조건.md">이용 조건 / License</a>
 </p>
@@ -87,9 +87,9 @@
 
 창 이동에 필요한 경우 macOS가 **자동화** 또는 **접근성** 권한을 요청합니다. 권한이 없어도 프로젝트 폴더 열기와 재개 명령 복사를 사용할 수 있습니다.
 
-#### Codex 세션 종료
+#### 세션 종료
 
-상세 화면의 **Codex 종료…** 또는 목록의 우클릭 메뉴로 선택한 세션을 종료합니다. 확인창에서 대상 프로젝트를 확인하면 해당 Codex가 닫히고 **대화 기록은 남습니다**. 다시 작업하려면 복사한 재개 명령을 실행하세요.
+상세 화면의 **세션 종료…** 또는 목록의 우클릭 메뉴로 선택한 CLI 세션을 종료합니다. 확인창에서 프로젝트와 요청을 확인하세요. **대화 기록은 남으며**, 다시 작업하려면 복사한 재개 명령을 실행하면 됩니다.
 
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_한국어.png" alt="sessionbar 세션 상세: 최신 응답, 작업 활동과 프로젝트 열기" width="850">
@@ -109,7 +109,7 @@
 
 **macOS 14 이상 · Apple Silicon 및 Intel Mac**에서 사용할 수 있습니다.
 
-[**macOS 앱 다운로드 — 0.2.0-beta.3**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3)
+[**macOS 앱 다운로드 — 0.2.0-beta.4**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4)
 
 DMG를 열고 `sessionbar.app`을 **Applications**로 드래그한 뒤 앱을 실행하세요. ZIP으로도 받을 수 있습니다. 컴파일러 설치는 필요하지 않습니다.
 
@@ -234,9 +234,9 @@ Select **Go to window** in the list or detail window to return to the app that o
 
 macOS may request **Automation** or **Accessibility** permission for window navigation. Opening the project folder and copying the resume command remain available without those permissions.
 
-#### Quit a Codex session
+#### End a session
 
-Select **Quit Codex…** in the detail window or the list's right-click menu. Check the project in the confirmation dialog to close the selected Codex. **Conversation history is kept.** Run the copied resume command to continue later.
+Select **End session…** in the detail window or the list's right-click menu to end the selected CLI session. Check its project and request in the confirmation dialog. **Conversation history is kept.** Run the copied resume command to continue later.
 
 <p align="center">
   <img src="Assets/screenshots/001_세션상세_영문.png" alt="sessionbar session details with the latest reply, recent activity, and project actions" width="850">
@@ -256,7 +256,7 @@ Use the clock button to open activity history. Select a date to see **completed 
 
 Requires **macOS 14 or later · Apple Silicon or Intel Mac**.
 
-[**Download the macOS app — 0.2.0-beta.3**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.3)
+[**Download the macOS app — 0.2.0-beta.4**](https://github.com/sy-shin/sessionbar/releases/tag/v0.2.0-beta.4)
 
 Open the DMG, drag `sessionbar.app` to **Applications**, and open it. A ZIP is also available. No compiler installation is needed.
 

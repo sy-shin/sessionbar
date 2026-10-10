@@ -74,6 +74,7 @@ actor ProcessObserver {
             }
         }
         let panes = await tmuxPanes()
+        let modes = await SessionProcessController.modes(of: codex.map(\.id))
         var result: [URL: SessionRuntime] = [:]
         for (pid, url) in rollouts {
             guard let entry = processes[pid] else { continue }
@@ -120,7 +121,7 @@ actor ProcessObserver {
             }
             let runtime = SessionRuntime(processID: pid, tty: tty, terminalName: pane == nil ? terminalName : "tmux",
                                          terminalBundleID: bundleID, tmuxPane: pane?.pane,
-                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime, originAppProcessID: originAppPID)
+                                         tmuxSession: pane?.session, tmuxWindow: pane?.window, tmuxClientTTY: pane?.clientTTY, workingDirectory: workingDirectories[pid], processStartTime: entry.startTime, originAppProcessID: originAppPID, processMode: modes[pid] ?? .unknown)
             if result[url]?.tty == nil || runtime.tty != nil { result[url] = runtime }
         }
         if scanGeneration == generation { lastKnownFiles = result }
