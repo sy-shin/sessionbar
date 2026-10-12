@@ -1,16 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 sessionbar_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$sessionbar_root/scripts/build-paths.sh"
 cd "$sessionbar_root"
 sessionbar_tag="${1:-v0.2.0-beta.5}"
 [[ "$sessionbar_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ ]] || { echo 'Invalid release tag' >&2; exit 2; }
 if [[ "${2:-}" != --skip-build ]]; then ./scripts/build-app.sh --arch universal; fi
-sessionbar_app="$sessionbar_root/build/sessionbar.app"
+sessionbar_app="$sessionbar_build_root/bundles/sessionbar.app"
 codesign --verify --deep --strict "$sessionbar_app"
 lipo "$sessionbar_app/Contents/MacOS/sessionbar" -verify_arch arm64 x86_64
 sessionbar_version="${sessionbar_tag#v}"
-sessionbar_out="$sessionbar_root/build/releases/$sessionbar_tag"
-sessionbar_stage="$sessionbar_root/.build/release-stage/$sessionbar_tag"
+sessionbar_out="$sessionbar_build_root/releases/$sessionbar_tag"
+sessionbar_stage="$sessionbar_build_root/release-stage/$sessionbar_tag"
 mkdir -p "$sessionbar_out"
 # Only known distribution files enter the archive or disk image.
 rm -rf "$sessionbar_stage"

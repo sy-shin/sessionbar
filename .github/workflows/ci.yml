@@ -13,6 +13,8 @@ permissions:
   contents: read
 jobs:
   test:
+    env:
+      SESSIONBAR_BUILD_ROOT: ${{ github.workspace }}/build
     strategy:
       fail-fast: false
       matrix:

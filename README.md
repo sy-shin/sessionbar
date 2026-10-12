@@ -158,7 +158,7 @@ cd sessionbar
 ./scripts/build-app.sh
 ```
 
-생성 위치는 `build/sessionbar.app`입니다.
+생성 위치는 현재 사용자의 `Library/Caches/sessionbar/<소스경로 식별자>/bundles/sessionbar.app`이며 명령이 실제 경로를 출력합니다. 소스를 공유 폴더에서 열어도 컴파일러·빌드 파일·테스트 출력은 현재 맥의 로컬에 둡니다. `SESSIONBAR_BUILD_ROOT`로 로컬 출력 위치를 지정할 수 있습니다. 실행 중인 앱의 설치 갱신은 보류하고, 기존 설치본은 로컬 ZIP으로 백업합니다.
 
 테스트:
 
@@ -305,7 +305,7 @@ This installs to `~/Applications/sessionbar.app`. To build without installing:
 ./scripts/build-app.sh
 ```
 
-The output is `build/sessionbar.app`.
+The output is `Library/Caches/sessionbar/<source-path identifier>/bundles/sessionbar.app` under the current user's home; the command prints the actual path. Compiler support files, builds, and test output stay on the current Mac when source is on a shared folder. Set `SESSIONBAR_BUILD_ROOT` to choose a local output directory. Installation defers while the app is running and backs up an existing app to a local ZIP.
 
 Tests:
 

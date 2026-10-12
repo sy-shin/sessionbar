@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 sessionbar_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$sessionbar_root/scripts/build-paths.sh"
 cd "$sessionbar_root"
 sessionbar_install_requested=false
 sessionbar_arch="$(uname -m)"
@@ -13,7 +14,7 @@ while [[ $# -gt 0 ]]; do
 done
 case "$sessionbar_arch" in arm64|x86_64|universal) ;; *) echo 'Architecture must be arm64, x86_64, or universal' >&2; exit 2 ;; esac
 [[ -f AGENTS.md && -f README.md && -f LICENSE ]] || { echo 'AGENTS.md, README.md, and LICENSE are required' >&2; exit 1; }
-sessionbar_app="$sessionbar_root/build/sessionbar.app"
+sessionbar_app="$sessionbar_build_root/bundles/sessionbar.app"
 # Rebuild a clean bundle; no local preferences or existing user files are copied.
 rm -rf "$sessionbar_app"
 mkdir -p "$sessionbar_app/Contents/MacOS" "$sessionbar_app/Contents/Resources"
@@ -23,7 +24,7 @@ sessionbar_binaries=()
 sessionbar_source_flags=(-Xswiftc -debug-prefix-map -Xswiftc "$sessionbar_root=/source/sessionbar" -Xswiftc -file-prefix-map -Xswiftc "$sessionbar_root=/source/sessionbar")
 for sessionbar_target in "${sessionbar_arches[@]}"; do
     sessionbar_triple="$sessionbar_target-apple-macosx14.0"
-    sessionbar_scratch="$sessionbar_root/.build/distribution/$sessionbar_target"
+    sessionbar_scratch="$sessionbar_build_root/distribution/$sessionbar_target"
     ./scripts/swift.sh build -c release --triple "$sessionbar_triple" --scratch-path "$sessionbar_scratch" "${sessionbar_source_flags[@]}"
     sessionbar_bin_dir="$(./scripts/swift.sh build -c release --triple "$sessionbar_triple" --scratch-path "$sessionbar_scratch" "${sessionbar_source_flags[@]}" --show-bin-path)"
     sessionbar_binaries+=("$sessionbar_bin_dir/sessionbar")
@@ -43,6 +44,15 @@ codesign --force --sign - "$sessionbar_app"
 codesign --verify --deep --strict "$sessionbar_app"
 if [[ "$sessionbar_install_requested" == true ]]; then
     sessionbar_install="$HOME/Applications/sessionbar.app"
+    if pgrep -x sessionbar >/dev/null; then
+        echo 'Build complete. Installation deferred while sessionbar is running.' >&2
+        exit 3
+    fi
+    if [[ -d "$sessionbar_install" ]]; then
+        sessionbar_backup="$HOME/Library/Application Support/sessionbar/Backups"
+        mkdir -p "$sessionbar_backup"
+        ditto -c -k --sequesterRsrc --keepParent "$sessionbar_install" "$sessionbar_backup/$(date +%Y%m%d-%H%M%S)-$(uuidgen).zip"
+    fi
     mkdir -p "$HOME/Applications"
     ditto "$sessionbar_app" "$sessionbar_install"
     open "$sessionbar_install"
